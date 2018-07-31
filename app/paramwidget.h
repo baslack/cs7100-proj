@@ -42,6 +42,9 @@ private:
 signals:
     void varyingChanged(int, bool);
 
+public slots:
+    void varyingDisabled(int);
+
 private slots:
     void switchState(int);
 };

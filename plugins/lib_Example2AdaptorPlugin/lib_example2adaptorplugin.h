@@ -14,7 +14,7 @@ class Lib_Example2AdaptorPlugin :
     Lib_Example2AdaptorPlugin(QObject* parent = 0);
     int call(const QVector<double>&, double&);
   protected:
-    double (*fn)(double, double);
+    double (*fn)(double, double, double, double);
 };
 
 #endif // LIB_EXAMPLE2ADAPTORPLUGIN_H

@@ -78,3 +78,9 @@ void ParamWidget::switchState(int state){
         emit varyingChanged(idx, true);
     }
 }
+
+void ParamWidget::varyingDisabled(int disabled_index){
+    if (disabled_index == idx){
+        varying->setCheckState(Qt::CheckState::Unchecked);
+    }
+}

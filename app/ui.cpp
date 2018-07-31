@@ -19,8 +19,14 @@
 #define WINDOW_DEFAULT_HEIGHT 768
 #define WINDOW_DEFAULT_WIDTH 1024
 
-ui::ui(QWidget*) {
-
+ui::ui(QWidget* parent):
+    QMainWindow(parent) {
+    connect(
+        this,
+        SIGNAL(adaptorChanged()),
+        this,
+        SLOT(onAdaptorChanged())
+    );
 }
 
 bool ui::loadPlugin() {
@@ -57,25 +63,31 @@ bool ui::loadPlugin() {
     }
 }
 
-void ui::createActions(){
-    int count = 0;
+void ui::createActions() {
+    int index = 0;
     for (QVector<AdaptorInterface*>::iterator iter = adaptors.begin();
-         iter != adaptors.end();
-         iter++){
-        QString action_name = (*iter)->getName();
-        QAction* this_action = new QAction(action_name, this);
+            iter != adaptors.end();
+            iter++) {
+        FunctionAction* this_action = new FunctionAction(index, this);
+        this_action->setText((*iter)->getName());
         this_action->setToolTip((*iter)->getDescription());
-        this_action->setShortcut("Ctrl+"+QString::number(count));
+        this_action->setShortcut("Ctrl+" + QString::number(index));
         adaptor_actions.push_back(this_action);
-        count++;
+        connect(
+            this_action,
+            SIGNAL(functionSelected(int)),
+            this,
+            SLOT(setCurrentAdaptor(int))
+        );
+        index++;
     }
 }
 
-void ui::createMenus(){
+void ui::createMenus() {
     function_menu = menuBar()->addMenu("Functions");
     for (auto iter = adaptor_actions.begin();
-         iter != adaptor_actions.end();
-         iter++){
+            iter != adaptor_actions.end();
+            iter++) {
         function_menu->addAction((*iter));
     }
 }
@@ -97,13 +109,18 @@ void ui::setup() {
 
 void ui::setupLeft() {
     if (lwrapper != Q_NULLPTR) {
+        QWidget* new_lwrapper = new QWidget(this);
+        this->centralWidget()->layout()->replaceWidget(lwrapper, new_lwrapper);
         delete lwrapper;
+        lwrapper = new_lwrapper;
+        params.clear();
+    }else{
+        lwrapper = new QWidget(this);
     }
-    lwrapper = new QWidget();
     QVector<QString>names = currentAdaptor->getParamNames();
     QVector<QString>tips = currentAdaptor->getParamTooltips();
     QVector<double>defaults = currentAdaptor->getDefaults();
-    QVBoxLayout* param_layout = new QVBoxLayout();
+    QVBoxLayout* param_layout = new QVBoxLayout(lwrapper);
     for (int i = 0; i < names.size(); i++) {
         this->params.push_back(
             new ParamWidget(
@@ -115,6 +132,18 @@ void ui::setupLeft() {
             )
         );
         param_layout->addWidget(params[i]);
+        connect(
+            params[i],
+            SIGNAL(varyingChanged(int, bool)),
+            this,
+            SLOT(updateVaryingAdaptorIndexes(int, bool))
+        );
+        connect(
+            this,
+            SIGNAL(varyingParamDisabled(int)),
+            params[i],
+            SLOT(varyingDisabled(int))
+        );
     }
     param_layout->addStretch();
     lwrapper->setLayout(param_layout);
@@ -136,4 +165,27 @@ void ui::setupRight() {
     right_layout->addWidget(viewport);
     right_layout->addWidget(log);
     rwrapper->setLayout(right_layout);
+}
+
+void ui::updateVaryingAdaptorIndexes(int idx, bool state) {
+    if (!state) {
+        varying_adaptor_indexes.removeOne(idx);
+    } else {
+        varying_adaptor_indexes.push_back(idx);
+        while (varying_adaptor_indexes.size() > 2) {
+            int disabled_index = varying_adaptor_indexes.takeFirst();
+            emit varyingParamDisabled(disabled_index);
+        }
+    }
+}
+
+void ui::setCurrentAdaptor(int index) {
+    currentAdaptor = adaptors[index];
+    emit adaptorChanged();
+}
+
+void ui::onAdaptorChanged(void) {
+    varying_adaptor_indexes.clear();
+    setupLeft();
+    this->show();
 }

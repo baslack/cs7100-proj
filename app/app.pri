@@ -6,7 +6,8 @@ SOURCES += \
     ../app/example.cpp \
 #    ../app/exampleadaptor.cpp \
     ../app/paramwidget.cpp \
-    $$PWD/example2.cpp
+    $$PWD/example2.cpp \
+    $$PWD/functionaction.cpp
 
 HEADERS += \
     ../app/ui.h \
@@ -16,4 +17,5 @@ HEADERS += \
 #    ../app/exampleadaptor.h \
     ../app/paramwidget.h \
     ../app/adaptorinterface.h \
-    $$PWD/example2.h
+    $$PWD/example2.h \
+    $$PWD/functionaction.h

@@ -15,6 +15,7 @@
 #include "gl.h"
 #include "paramwidget.h"
 #include "adaptorinterface.h"
+#include "functionaction.h"
 
 class ui : public QMainWindow {
     Q_OBJECT
@@ -23,27 +24,30 @@ class ui : public QMainWindow {
     void setup(void);
 
   signals:
-    void AdaptorChanged(void);
+    void adaptorChanged(void);
+    void varyingParamDisabled(int);
 
   private slots:
     void setupLeft(void);
     void setupRight(void);
+    void updateVaryingAdaptorIndexes(int, bool);
+    void setCurrentAdaptor(int);
+    void onAdaptorChanged(void);
 
   public slots:
 
   private:
     // adaptors
+    bool loadPlugin(void);
     AdaptorInterface* currentAdaptor = Q_NULLPTR;
     QVector<AdaptorInterface*> adaptors;
+    QVector<int> varying_adaptor_indexes;
 
     // menu
-    QVector<QAction*> adaptor_actions;
+    QVector<FunctionAction*> adaptor_actions;
     QMenu* function_menu;
     void createMenus(void);
     void createActions(void);
-
-
-    bool loadPlugin(void);
 
     // new left hand members
     QWidget* lwrapper = Q_NULLPTR;
