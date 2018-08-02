@@ -7,7 +7,8 @@ SOURCES += \
 #    ../app/exampleadaptor.cpp \
     ../app/paramwidget.cpp \
     $$PWD/example2.cpp \
-    $$PWD/functionaction.cpp
+    $$PWD/functionaction.cpp \
+    $$PWD/cube.cpp
 
 HEADERS += \
     ../app/ui.h \
@@ -18,4 +19,9 @@ HEADERS += \
     ../app/paramwidget.h \
     ../app/adaptorinterface.h \
     $$PWD/example2.h \
-    $$PWD/functionaction.h
+    $$PWD/functionaction.h \
+    $$PWD/cube.h
+
+DISTFILES += \
+    $$PWD/basicvertexshader.glsl \
+    $$PWD/basicfragmentshader.glsl

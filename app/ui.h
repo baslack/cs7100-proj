@@ -35,6 +35,7 @@ class ui : public QMainWindow {
     void onAdaptorChanged(void);
 
   public slots:
+    void onVisualize(void);
 
   private:
     // adaptors

@@ -93,7 +93,6 @@ void ui::createMenus() {
 }
 
 void ui::setup() {
-    //    currentAdaptor = new ExampleAdaptor;
     loadPlugin();
     createActions();
     createMenus();
@@ -114,7 +113,7 @@ void ui::setupLeft() {
         delete lwrapper;
         lwrapper = new_lwrapper;
         params.clear();
-    }else{
+    } else {
         lwrapper = new QWidget(this);
     }
     QVector<QString>names = currentAdaptor->getParamNames();
@@ -146,6 +145,16 @@ void ui::setupLeft() {
         );
     }
     param_layout->addStretch();
+    QPushButton* visualizeButton = new QPushButton(lwrapper);
+    visualizeButton->setText("Visualize");
+    visualizeButton->setToolTip("Visualize the selected function using the parameters set above.");
+    connect(
+        visualizeButton,
+        SIGNAL(clicked()),
+        this,
+        SLOT(onVisualize())
+    );
+    param_layout->addWidget(visualizeButton);
     lwrapper->setLayout(param_layout);
     lwrapper->setMaximumWidth(LEFT_WIDTH);
 }
@@ -188,4 +197,12 @@ void ui::onAdaptorChanged(void) {
     varying_adaptor_indexes.clear();
     setupLeft();
     this->show();
+}
+
+void ui::onVisualize() {
+    log->append("Starting Visualization...\n");
+    // TODO: Generate Points.
+    // TODO: Draw Points.
+    // TODO: Tesselate Points.
+    // TODO: Draw Surface.
 }
