@@ -10,6 +10,10 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
+#include <QPointF>
+#include <QMouseEvent>
+//#include <cmath>
+#include <QtMath>
 
 class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     Q_OBJECT
@@ -42,12 +46,13 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     // view data members
     QVector3D m_view_target;  // ws locatoin of center of view
     QVector3D m_view_pos; // ws location of viewing position
+    QVector3D m_view_up;  // ws up vector of the view
     float m_fov; // field of view
     QMatrix4x4 m_projectionMat;  // perspective projection
     QMatrix4x4 m_viewMat;  // worlds space to camera space
     QMatrix4x4 m_modelMat;  // model space to worlds space, i.e. transform
     // mouse data members
-    QPoint m_last_pos;
+    QPointF m_last_pos;
     // visualized points data members
     QOpenGLVertexArrayObject m_vao;
     QOpenGLBuffer m_vbo;
@@ -55,6 +60,7 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     QOpenGLShaderProgram* m_prog;
     // shader memory locations
     int m_mvpMatLoc;
+    // ui event data members
 
   protected:
     // virtuals from OpenGLWidget to implement
@@ -64,6 +70,14 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     // virtuals for QWidget to track the mouse movement
     void mousePressEvent(QMouseEvent*);
     void mouseMoveEvent(QMouseEvent*);
+    void performTumble(QPointF);
+    void performTumbleAboutCenter(QVector3D);
+    void performTrack(QVector3D);
+    void performTruck(QVector3D);
+    void performZoom(QVector3D);
+    void performRoll(QVector3D);
+    QVector3D calculateOffset(QPointF);
+    QVector3D arcballVector(QPointF);
 };
 
 #endif // GL_H
