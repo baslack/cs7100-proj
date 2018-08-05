@@ -115,20 +115,6 @@ void GL::resizeGL(int w, int h) {
     m_projectionMat.perspective(m_fov, GLfloat(w) / h, NEAR_CLIP, FAR_CLIP);
 }
 
-QVector3D GL::calculateOffset(QPointF current_pos) {
-    qreal width(this->geometry().width());
-    qreal height(this->geometry().height());
-    // convert the points to camera space coords
-    float curpos_x((current_pos.x() - width / 2) / (width / 2));
-    float curpos_y((current_pos.y() - height / 2) / (height / 2));
-    float lastpos_x = ((m_last_pos.x() - width / 2) / (width / 2));
-    float lastpos_y = ((m_last_pos.y() - height / 2) / (height / 2));
-    // calculate the offset vector
-    float offset_x = curpos_x - lastpos_x;
-    float offset_y = -(curpos_y - lastpos_y);
-    return QVector3D(offset_x, offset_y, 0);
-}
-
 QVector3D GL::arcballVector(QPointF pos) {
     float radius = 1.0f;
     float width = this->geometry().width();
@@ -147,12 +133,10 @@ QVector3D GL::arcballVector(QPointF pos) {
 }
 
 void GL::mousePressEvent(QMouseEvent* event) {
-        m_last_pos = event->localPos();
+    m_last_pos = event->localPos();
 }
 
 void GL::mouseMoveEvent(QMouseEvent* event) {
-    QVector3D offset = calculateOffset(event->localPos());
-
     switch (event->modifiers()) {
         case Qt::ControlModifier:
             switch (event->buttons()) {
@@ -160,10 +144,10 @@ void GL::mouseMoveEvent(QMouseEvent* event) {
                     performTumble(event->localPos());
                     break;
                 case Qt::MiddleButton:
-                    performTrack(offset);
+                    performTrack(event->localPos());
                     break;
                 case Qt::RightButton:
-                    performTruck(offset);
+                    performTruck(event->localPos());
                     break;
                 default:
                     break;
@@ -172,33 +156,33 @@ void GL::mouseMoveEvent(QMouseEvent* event) {
         case Qt::ControlModifier|Qt::ShiftModifier:
             switch (event->buttons()) {
                 case Qt::LeftButton:
-                    performRoll(offset);
+                    performRoll(event->localPos());
                     break;
                 case Qt::MiddleButton:
-                    performTrack(offset);
+                    performTrack(event->localPos());
                     break;
                 case Qt::RightButton:
-                    performZoom(offset);
+                    performZoom(event->localPos());
                     break;
                 default:
                     break;
             }
             break;
-        //        case Qt::AltModifier|Qt::ControlModifier:
-        //            switch (event->buttons()) {
-        //                case Qt::LeftButton:
-        //                    performTumbleAboutCenter(offset);
-        //                    break;
-        //                case Qt::MiddleButton:
-        //                    performTrack(offset);
-        //                    break;
-        //                case Qt::RightButton:
-        //                    performTruck(offset);
-        //                    break;
-        //                default:
-        //                    break;
-        //            }
-        //            break;
+        case Qt::ShiftModifier:
+            switch (event->buttons()) {
+                case Qt::LeftButton:
+                    performArcballTumble(event->localPos());
+                    break;
+                case Qt::MiddleButton:
+                    performTrack(event->localPos());
+                    break;
+                case Qt::RightButton:
+                    performTruck(event->localPos());
+                    break;
+                default:
+                    break;
+            }
+            break;
         default:
             break;
     }
@@ -207,13 +191,13 @@ void GL::mouseMoveEvent(QMouseEvent* event) {
     //    emit ViewChanged();
 }
 
-void GL::performTumble(QPointF current_pos) {
+void GL::performArcballTumble(QPointF current_pos) {
     // rotate the view about the center
     // of the cam
     QVector3D va = arcballVector(m_last_pos);
     QVector3D vb = arcballVector(current_pos);
     QVector3D axis_cs = QVector3D::crossProduct(va, vb);
-//    qDebug() << axis_cs;
+    //    qDebug() << axis_cs;
     axis_cs.normalize();
     QVector4D _axis_cs(axis_cs, 0.0f);
     float angle  = qAcos(qMin(1.0f, QVector3D::dotProduct(va, vb)));
@@ -222,34 +206,80 @@ void GL::performTumble(QPointF current_pos) {
     QMatrix4x4 invMV = MV.inverted();
     QVector4D _axis_os = invMV * _axis_cs;
     QVector3D axis_os = _axis_os.toVector3D();
-//    qDebug() << axis_os;
+    //    qDebug() << axis_os;
     axis_os.normalize();
     m_modelMat.rotate(degrees, axis_os);
     //    m_viewMat.rotate(degrees, axis_cs);
 }
 
-void GL::performTumbleAboutCenter(QVector3D offset) {
-
+void GL::performTumble(QPointF current_pos) {
+    // get screen space vectors from last and current pos
+    QVector3D va = arcballVector(m_last_pos);
+    QVector3D vb = arcballVector(current_pos);
+    //    qDebug() << "va:" << va << " vb:" << vb;
+    QVector3D rot_axis = QVector3D::crossProduct(va, vb);
+    float angle = qAcos(qMin(1.0f, QVector3D::dotProduct(va, vb)));
+    QMatrix4x4 rot_mat;
+    float rot_scalar = 0.4f;
+    rot_mat.setToIdentity();
+    rot_mat.rotate(rot_scalar * qRadiansToDegrees(angle), rot_axis);
+    m_viewMat = rot_mat * m_viewMat;
 }
 
-void GL::performTrack(QVector3D offset) {
+void GL::performTrack(QPointF current_pos) {
     // translate the view in camera space xy
     // then move the translation back into ws
+    // get screen space vectors from last and current pos
+    QVector3D va = arcballVector(m_last_pos);
+    QVector3D vb = arcballVector(current_pos);
+    float x = vb.x() - va.x();
+    float y = vb.y() - va.y();
+    float translation_scalar = 5.0f;
+    QMatrix4x4 trans_mat;
+    trans_mat.setToIdentity();
+    trans_mat.translate(QVector3D(x,y,0)*translation_scalar);
+    m_viewMat = trans_mat * m_viewMat;
 }
 
-void GL::performTruck(QVector3D offset) {
+void GL::performTruck(QPointF current_pos) {
     // translate the view in camera space z
     //then move the translation back into ws
+    QVector3D va = arcballVector(m_last_pos);
+    QVector3D vb = arcballVector(current_pos);
+    float z = vb.y() - va.y();
+    float translation_scalar = 5.0f;
+    QMatrix4x4 trans_mat;
+    trans_mat.setToIdentity();
+    trans_mat.translate(QVector3D(0,0,z)*translation_scalar);
+    m_viewMat = trans_mat * m_viewMat;
 }
 
-void GL::performZoom(QVector3D offset) {
+void GL::performZoom(QPointF current_pos) {
     // change the fov
+    QVector3D va = arcballVector(m_last_pos);
+    QVector3D vb = arcballVector(current_pos);
+    float adj_fov = vb.y() - va.y();
+    float fov_scalar = 10.0f;
+    m_fov += fov_scalar * adj_fov;
+    resizeGL(this->geometry().width(), this->geometry().height());
 }
 
-void GL::performRoll(QVector3D offset) {
+void GL::performRoll(QPointF current_pos) {
     // rotate the up vector about the z camera space
-    // then
-
+    // get screen space vectors from last and current pos
+    QVector3D va = arcballVector(m_last_pos);
+    QVector3D vb = arcballVector(current_pos);
+    //    qDebug() << "va:" << va << " vb:" << vb;
+    QVector3D rot_axis(0, 0, 1);
+    float angle = qAcos(qMin(1.0f, QVector3D::dotProduct(va, vb)));
+    QMatrix4x4 rot_mat;
+    float rot_scalar = 0.4f;
+    if (vb.x() > va.x()) {
+        rot_scalar *= -1;
+    }
+    rot_mat.setToIdentity();
+    rot_mat.rotate(rot_scalar * qRadiansToDegrees(angle), rot_axis);
+    m_viewMat = rot_mat * m_viewMat;
 }
 
 // getters

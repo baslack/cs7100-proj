@@ -70,13 +70,12 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     // virtuals for QWidget to track the mouse movement
     void mousePressEvent(QMouseEvent*);
     void mouseMoveEvent(QMouseEvent*);
+    void performArcballTumble(QPointF);
     void performTumble(QPointF);
-    void performTumbleAboutCenter(QVector3D);
-    void performTrack(QVector3D);
-    void performTruck(QVector3D);
-    void performZoom(QVector3D);
-    void performRoll(QVector3D);
-    QVector3D calculateOffset(QPointF);
+    void performTrack(QPointF);
+    void performTruck(QPointF);
+    void performZoom(QPointF);
+    void performRoll(QPointF);
     QVector3D arcballVector(QPointF);
 };
 
