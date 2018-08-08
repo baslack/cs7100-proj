@@ -8,7 +8,9 @@ SOURCES += \
     ../app/paramwidget.cpp \
     $$PWD/example2.cpp \
     $$PWD/functionaction.cpp \
-    $$PWD/cube.cpp
+    $$PWD/cube.cpp \
+    $$PWD/mesh.cpp \
+    $$PWD/primatives.cpp
 
 HEADERS += \
     ../app/ui.h \
@@ -20,7 +22,10 @@ HEADERS += \
     ../app/adaptorinterface.h \
     $$PWD/example2.h \
     $$PWD/functionaction.h \
-    $$PWD/cube.h
+    $$PWD/cube.h \
+    $$PWD/geometry_interface.h \
+    $$PWD/mesh.h \
+    $$PWD/primatives.h
 
 DISTFILES += \
     $$PWD/basicvertexshader.glsl \
