@@ -16,6 +16,8 @@
 #include "paramwidget.h"
 #include "adaptorinterface.h"
 #include "functionaction.h"
+#include "geometry_interface.h"
+#include "mesh.h"
 
 class ui : public QMainWindow {
     Q_OBJECT
@@ -36,6 +38,7 @@ class ui : public QMainWindow {
 
   public slots:
     void onVisualize(void);
+    void onMeshDataReady(void);
 
   private:
     // adaptors
@@ -58,6 +61,9 @@ class ui : public QMainWindow {
     QWidget* rwrapper = Q_NULLPTR;
     GL* viewport;
     QTextEdit* log;
+
+    //display geometry
+    Geometry_Interface* m_geo = Q_NULLPTR;
 };
 
 #endif // UI_H

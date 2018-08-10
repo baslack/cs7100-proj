@@ -1,4 +1,4 @@
-#include "ui.h"
+﻿#include "ui.h"
 #include <QApplication>
 #include <QPluginLoader>
 #include <QSize>
@@ -10,6 +10,7 @@
 #include <QIntValidator>
 #include <QDir>
 #include <QDebug>
+#include "cube.h"
 
 #define TEMPSTATIC 3
 #define FIELD_MAXWIDTH 150
@@ -201,8 +202,120 @@ void ui::onAdaptorChanged(void) {
 
 void ui::onVisualize() {
     log->append("Starting Visualization...\n");
-    // TODO: Generate Points.
-    // TODO: Draw Points.
-    // TODO: Tesselate Points.
-    // TODO: Draw Surface.
+    // 1. get the params of tess form the widgets
+    //    log->append("Testing VBO update...\n");
+    //    cube testcube(2.5);
+    //    viewport->updateVertexBuffer(testcube.constData(), testcube.count());
+    //    return;
+
+    // bail out
+    if (varying_adaptor_indexes.size() < 2) {
+        log->append("Error: only single paramater selected for varying.\n");
+        return;
+    }
+    // id the varying params
+    int x_index = varying_adaptor_indexes[0];
+    int y_index = varying_adaptor_indexes[1];
+    // id the static params
+    QVector<int> static_indexes;
+    for (int i = 0; i < params.size(); i++) {
+        static_indexes.push_back(i);
+    }
+    static_indexes.removeAll(x_index);
+    static_indexes.removeAll(y_index);
+    // setup an input vector & result for call
+    QVector<double> input_vector(params.size());
+    double result = 0.0;
+    // pull the static params base values
+    for (auto this_index = static_indexes.begin();
+            this_index != static_indexes.end();
+            this_index++) {
+        // for each of the static indexes, pull the field contents
+        input_vector[(*this_index)] = params[(*this_index)]->getBase();
+        log->append("Static param: "
+                    + params[(*this_index)]->getName()
+                    + " set to, "
+                    + QString::number(params[(*this_index)]->getBase())
+                    + "\n"
+                   );
+    }
+    // pull the ranges and steps from the varying pm widgets
+    double x_min = params[x_index]->getMin();
+    double x_max = params[x_index]->getMax();
+    int x_steps = params[x_index]->getSteps();
+    double y_min = params[y_index]->getMin();
+    double y_max = params[y_index]->getMax();
+    int y_steps = params[y_index]->getSteps();
+    log->append("X param: "
+                + params[x_index]->getName()
+                + " ranging from "
+                + QString::number(x_min)
+                + " to "
+                + QString::number(x_max)
+                + " over "
+                + QString::number(x_steps)
+                + " steps.\n"
+               );
+    log->append("Y param: "
+                + params[y_index]->getName()
+                + " ranging from "
+                + QString::number(y_min)
+                + " to "
+                + QString::number(y_max)
+                + " over "
+                + QString::number(y_steps)
+                + " steps.\n"
+               );
+    // Mesh will generated sizes by bounds
+    // UI will make the calls
+    log->append("Setting up Mesh\n");
+    if (m_geo != Q_NULLPTR) {
+        delete m_geo;
+    }
+    Mesh* visgeo = new Mesh(x_steps, y_steps, this);
+    connect(
+        visgeo,
+        &Mesh::MeshDataReady,
+        this,
+        &ui::onMeshDataReady
+    );
+    m_geo = visgeo;
+    // setup the domain slices
+    double x_slice = (x_max - x_min) / x_steps;
+    double y_slice = (y_max - y_min) / y_steps;
+    // iterate over the varying domain
+    log->append("Creating Points\n");
+    for (int i = 0; i < x_steps; i++) {
+        for (int j = 0; j < y_steps; j++) {
+            input_vector[x_index] = i * x_slice;
+            input_vector[y_index] = j * y_slice;
+            this->currentAdaptor->call(input_vector, result);
+            visgeo->addPoint(QVector3D(
+                                 input_vector[x_index],
+                                 input_vector[y_index],
+                                 result)
+                            );
+        }
+    }
+}
+
+void ui::onMeshDataReady(void) {
+    // move the mesh data into the opengl context
+    viewport->updateVertexBuffer(
+        m_geo->dataTrianglesPositions(),
+        m_geo->countTrianglesPositions()
+    );
+    viewport->updateNormalBuffer(
+        m_geo->dataTrianglesNormals(),
+        m_geo->countTrianglesNormals()
+    );
+    viewport->updateUVWBuffer(
+        m_geo->dataTrianglesUVWs(),
+        m_geo->countTrianglesUVWs()
+    );
+    viewport->updatePointBuffer(
+        m_geo->dataPointPositions(),
+        m_geo->countPointPositions()
+    );
+    viewport->forceUpdate();
 }

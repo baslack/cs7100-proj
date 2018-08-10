@@ -24,6 +24,11 @@ public:
             QString,
             double,
             QWidget *parent = 0);
+    QString getName(void);
+    double getBase(void);
+    double getMin(void);
+    double getMax(void);
+    int getSteps(void);
 
 private:
     QLabel* name;

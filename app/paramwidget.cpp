@@ -66,6 +66,26 @@ ParamWidget::ParamWidget(
     );
 }
 
+QString ParamWidget::getName(){
+    return this->name->text();
+}
+
+double ParamWidget::getBase(){
+    return this->base->text().toDouble();
+}
+
+double ParamWidget::getMin(){
+    return this->min->text().toDouble();
+}
+
+double ParamWidget::getMax(){
+    return this->max->text().toDouble();
+}
+
+int ParamWidget::getSteps(){
+    return this->steps->text().toInt();
+}
+
 void ParamWidget::switchState(int state){
 
     if (varying->checkState() == Qt::CheckState::Unchecked){

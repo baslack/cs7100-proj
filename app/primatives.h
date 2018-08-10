@@ -12,7 +12,7 @@ class Face;
 
 class Point {
   public:
-    Point(QVector3D);
+    Point(QVector3D = QVector3D(0,0,0));
     Point(GLfloat, GLfloat, GLfloat);
     const QVector3D getPosition(void) const;
     void setPosition(QVector3D);

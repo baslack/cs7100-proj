@@ -1,9 +1,13 @@
 #include "gl.h"
 #include "cube.h"
+#include "grid.h"
 #include <QFile>
 
 #define V_SHAD_PATH "../../proj/app/basicvertexshader.glsl"
 #define F_SHAD_PATH "../../proj/app/basicfragmentshader.glsl"
+#define F_SHAD_BLUE_PATH "../../proj/app/bluefrag.glsl"
+#define V_SHAD_GRID_PATH "../../proj/app/grid_vertshader.glsl"
+#define F_SHAD_GRID_PATH "../../proj/app/grid_fragshader.glsl"
 #define NEAR_CLIP 0.1f
 #define FAR_CLIP 100.0f
 
@@ -14,12 +18,12 @@ GL::GL(QWidget* parent):
     m_view_up(QVector3D(0, 1, 0)),
     m_fov(28),
     m_last_pos(QPointF(0, 0)) {
-    connect(
-        this,
-        &GL::ViewChanged,
-        this,
-        &GL::onViewChanged
-    );
+    //    connect(
+    //        this,
+    //        &GL::ViewChanged,
+    //        this,
+    //        &GL::onViewChanged
+    //    );
 }
 
 GL::~GL() {
@@ -62,52 +66,132 @@ void GL::initializeGL(void) {
     m_prog->addShaderFromSourceCode(QOpenGLShader::Vertex, v_shad_source);
     m_prog->addShaderFromSourceCode(QOpenGLShader::Fragment, f_shad_source);
     m_prog->bindAttributeLocation("vertex", 0);
+    m_prog->bindAttributeLocation("normal", 1);
+    m_prog->bindAttributeLocation("uvw", 2);
+    m_prog->bindAttributeLocation("point", 3);
     m_prog->link();
     m_prog->bind();
-
     m_mvpMatLoc = m_prog->uniformLocation("mvpMat");
+    m_prog->release();
+
+
+    QFile f_blue_source_file(F_SHAD_BLUE_PATH);
+    f_blue_source_file.open(QIODevice::ReadOnly);
+    QString f_blue_source = f_blue_source_file.readAll();
+    f_blue_source_file.close();
+
+    m_prog2 = new QOpenGLShaderProgram;
+    m_prog2->addShaderFromSourceCode(QOpenGLShader::Vertex, v_shad_source);
+    m_prog2->addShaderFromSourceCode(QOpenGLShader::Fragment, f_blue_source);
+    m_prog2->bindAttributeLocation("vertex", 0);
+    m_prog2->link();
+    m_prog2->bind();
+    m_mvpMatLoc2 = m_prog2->uniformLocation("mvpMat");
+    m_prog2->release();
+
+
+
+
 
     // prepare the geo
     m_vao.create();
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
-    m_vbo.create();
-    m_vbo.bind();
-    cube tempcube(5.0f);
-    m_vbo.allocate(tempcube.constData(), tempcube.count() * sizeof(GLfloat));
+    //    m_vbo.create();
+    //    m_vbo.bind();
 
-    // setup Vertex Atrrs for shaders
+    // fill the vertex buffer with a default cube
+    cube tempcube(5.0f);
+
+    // create the buffers
+    m_vertex_buffer.create();
+    m_vertex_buffer.bind();
+    m_vertex_buffer.allocate(tempcube.constData(), tempcube.count() * sizeof(GLfloat));
+    qDebug() << "vb init size: " << m_vertex_buffer.size();
+    qDebug() << "usage pattern" << QString::number(m_vertex_buffer.usagePattern(), 16);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    m_vbo.release();
+    m_vertex_buffer.release();
+
+    m_normal_buffer.create();
+    m_normal_buffer.bind();
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    m_normal_buffer.release();
+
+    m_uvw_buffer.create();
+    m_uvw_buffer.bind();
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    m_uvw_buffer.release();
+
+    m_pt_buffer.create();
+    m_pt_buffer.bind();
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    m_pt_buffer.release();
+
+
+    //    m_vbo.allocate(tempcube.constData(), tempcube.count() * sizeof(GLfloat));
+
+    //    m_vbo.release();
 
     // setup view mat
     m_viewMat.setToIdentity();
     m_viewMat.lookAt(m_view_pos, m_view_target, m_view_up);
 
-    // init model mat
+    // init mats
     m_modelMat.setToIdentity();
+    m_centeringMat.setToIdentity();
+    m_rangescaleMat.setToIdentity();
 
 
     // release the vertex program?
-    m_prog->release();
+    //    m_prog->release();
 }
 
 void GL::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(4.0f);
+    //    glEnable(GL_LINE_SMOOTH);
+    //    glLineWidth(2.0f);
 
     //    m_modelMat.setToIdentity();
 
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
     m_prog->bind();
-    QMatrix4x4 mvpMat = m_projectionMat * m_viewMat * m_modelMat;
+    //    QMatrix4x4 mvpMat = m_projectionMat * m_viewMat * m_modelMat;
+    QMatrix4x4 y_on_horz;
+    y_on_horz.setToIdentity();
+    y_on_horz.rotate(-90.0f, QVector3D(1, 0, 0));
+    QMatrix4x4 mvpMat = m_projectionMat
+                        * m_viewMat
+                        * m_modelMat
+                        * y_on_horz
+                        * m_rangescaleMat
+                        * m_centeringMat;
+
     m_prog->setUniformValue(m_mvpMatLoc, mvpMat);
 
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-
+    m_vertex_buffer.bind();
+    //    qDebug() << "bound vb: " << QString::number(m_vertex_buffer.bind());
+    //    qDebug() << "vb size:" << m_vertex_buffer.size();
+    //    qDebug() << "size of glfloat << " << sizeof(GLfloat);
+    if (m_vertex_buffer.size() != 0) {
+        glDrawArrays(GL_TRIANGLES, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
+    }
     m_prog->release();
+    m_prog2->bind();
+    m_prog2->setUniformValue(m_mvpMatLoc2, mvpMat);
+
+    if (m_vertex_buffer.size() != 0) {
+        glDrawArrays(GL_POINTS, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
+    }
+    m_vertex_buffer.release();
+    m_prog2->release();
 }
 
 void GL::resizeGL(int w, int h) {
@@ -237,7 +321,7 @@ void GL::performTrack(QPointF current_pos) {
     float translation_scalar = 5.0f;
     QMatrix4x4 trans_mat;
     trans_mat.setToIdentity();
-    trans_mat.translate(QVector3D(x,y,0)*translation_scalar);
+    trans_mat.translate(QVector3D(x, y, 0)*translation_scalar);
     m_viewMat = trans_mat * m_viewMat;
 }
 
@@ -250,7 +334,7 @@ void GL::performTruck(QPointF current_pos) {
     float translation_scalar = 5.0f;
     QMatrix4x4 trans_mat;
     trans_mat.setToIdentity();
-    trans_mat.translate(QVector3D(0,0,z)*translation_scalar);
+    trans_mat.translate(QVector3D(0, 0, z)*translation_scalar);
     m_viewMat = trans_mat * m_viewMat;
 }
 
@@ -282,41 +366,75 @@ void GL::performRoll(QPointF current_pos) {
     m_viewMat = rot_mat * m_viewMat;
 }
 
+
+void GL::updateVertexBuffer(const GLfloat* data, int count) {
+    makeCurrent();
+    m_vertex_buffer.bind();
+    m_vertex_buffer.allocate(data, count * sizeof(GLfloat));
+    m_vertex_buffer.release();
+}
+
+void GL::updateNormalBuffer(const GLfloat* data, int count) {
+    makeCurrent();
+    m_normal_buffer.bind();
+    m_normal_buffer.allocate(data, count * sizeof(GLfloat));
+    m_normal_buffer.release();
+}
+
+void GL::updateUVWBuffer(const GLfloat* data, int count) {
+    makeCurrent();
+    m_uvw_buffer.bind();
+    m_uvw_buffer.allocate(data, count * sizeof(GLfloat));
+    m_uvw_buffer.release();
+}
+
+void GL::updatePointBuffer(const GLfloat* data, int count) {
+    makeCurrent();
+    m_pt_buffer.bind();
+    m_pt_buffer.allocate(data, count * sizeof(GLfloat));
+    m_pt_buffer.release();
+}
+
+void GL::forceUpdate() {
+    makeCurrent();
+    update();
+}
+
 // getters
 
-QVector3D GL::ViewTarget() {
-    return m_view_target;
-}
+//QVector3D GL::ViewTarget() {
+//    return m_view_target;
+//}
 
-QVector3D GL::ViewPos() {
-    return m_view_pos;
-}
+//QVector3D GL::ViewPos() {
+//    return m_view_pos;
+//}
 
-GLfloat GL::FOV() {
-    return m_fov;
-}
+//GLfloat GL::FOV() {
+//    return m_fov;
+//}
 
 // setters
 
-void GL::setViewPos(QVector3D newpos) {
-    m_view_pos = newpos;
-    emit ViewChanged();
-}
+//void GL::setViewPos(QVector3D newpos) {
+//    m_view_pos = newpos;
+//    emit ViewChanged();
+//}
 
-void GL::setViewTarget(QVector3D newtarg) {
-    m_view_target = newtarg;
-    emit ViewChanged();
-}
+//void GL::setViewTarget(QVector3D newtarg) {
+//    m_view_target = newtarg;
+//    emit ViewChanged();
+//}
 
-void GL::setFOV(GLfloat newfov) {
-    m_fov = newfov;
-    emit ViewChanged();
-}
+//void GL::setFOV(GLfloat newfov) {
+//    m_fov = newfov;
+//    emit ViewChanged();
+//}
 
 // slots
 
-void GL::onViewChanged() {
-    m_viewMat.setToIdentity();
-    m_viewMat.lookAt(m_view_pos, m_view_target, m_view_up);
-    resizeGL(this->geometry().width(), this->geometry().height());
-}
+//void GL::onViewChanged() {
+//    m_viewMat.setToIdentity();
+//    m_viewMat.lookAt(m_view_pos, m_view_target, m_view_up);
+//    resizeGL(this->geometry().width(), this->geometry().height());
+//}

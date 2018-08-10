@@ -10,7 +10,8 @@ SOURCES += \
     $$PWD/functionaction.cpp \
     $$PWD/cube.cpp \
     $$PWD/mesh.cpp \
-    $$PWD/primatives.cpp
+    $$PWD/primatives.cpp \
+    $$PWD/grid.cpp
 
 HEADERS += \
     ../app/ui.h \
@@ -25,8 +26,12 @@ HEADERS += \
     $$PWD/cube.h \
     $$PWD/geometry_interface.h \
     $$PWD/mesh.h \
-    $$PWD/primatives.h
+    $$PWD/primatives.h \
+    $$PWD/grid.h
 
 DISTFILES += \
     $$PWD/basicvertexshader.glsl \
-    $$PWD/basicfragmentshader.glsl
+    $$PWD/basicfragmentshader.glsl \
+    $$PWD/bluefrag.glsl \
+    $$PWD/grid_fragshader.glsl \
+    $$PWD/grid_vertshader.glsl

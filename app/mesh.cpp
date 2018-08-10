@@ -1,18 +1,10 @@
 #include "mesh.h"
 
-Mesh::Mesh(GLfloat minX,
-           GLfloat maxX,
-           int stepX,
-           GLfloat minY,
-           GLfloat maxY,
+Mesh::Mesh(int stepX,
            int stepY,
            QObject* parent):
     QObject(parent),
-    m_minX(minX),
-    m_maxX(maxX),
     m_stepX(stepX),
-    m_minY(minY),
-    m_maxY(maxY),
     m_stepY(stepY),
     m_index_x(0),
     m_index_y(0),
@@ -31,14 +23,18 @@ Mesh::Mesh(GLfloat minX,
     );
 }
 
+//Mesh::Mesh(void){
+
+//}
+
 Mesh::~Mesh() {
 
 }
 
-int Mesh::addPoint(
+void Mesh::addPoint(
     QVector3D ws_position) {
     if (m_index_x >= m_stepX) {
-        return FAILURE;
+        MeshAddPointFailed().raise();
     }
     Point new_point(ws_position);
     setPoint(m_index_x, m_index_y, new_point);
@@ -50,7 +46,6 @@ int Mesh::addPoint(
     if (m_index_x == m_stepX) {
         emit MeshComplete();
     }
-    return SUCCESS;
 }
 
 const Point& Mesh::getPoint(
@@ -70,29 +65,24 @@ void Mesh::setPoint(
 }
 
 QMatrix4x4 Mesh::centeringTransform() {
-    GLfloat midpoint_x = (m_maxX - m_minX) / 2 + m_minX;
-    GLfloat midpoint_y = (m_maxY - m_minY) / 2 + m_minY;
+    QVector3D midpoint = (m_bounds_max - m_bounds_min)/2 + m_bounds_min;
     QMatrix4x4 retMat;
     retMat.setToIdentity();
-    retMat.translate(QVector3D(-midpoint_x, -midpoint_y, 0));
+    retMat.translate(-midpoint);
     return retMat;
 }
 
 QMatrix4x4 Mesh::rangeScalingTransform() {
-    QVector3D mins = boundsMin();
-    QVector3D maxs = boundsMax();
-    GLfloat range_x = maxs.x() - mins.x();
-    GLfloat range_y = maxs.y() - mins.y();
-    GLfloat range_z = maxs.z() - mins.z();
-    GLfloat scale_z = 1.0f;
-    if (range_z / range_x > range_z / range_y) {
-        scale_z = range_x / range_z;
-    } else {
-        scale_z = range_y / range_z;
+    QVector3D bbox_size = m_bounds_max - m_bounds_min;
+    GLfloat scale_factor = 1.0f;
+    if (bbox_size.x() > bbox_size.y()){
+        scale_factor = 1.0f/(bbox_size.z()/bbox_size.y());
+    }else{
+        scale_factor = 1.0f/(bbox_size.z()/bbox_size.x());
     }
     QMatrix4x4 retMat;
     retMat.setToIdentity();
-    retMat.scale(QVector3D(1.0f, 1.0f, scale_z));
+    retMat.scale(1,1,scale_factor);
     return retMat;
 }
 
@@ -115,6 +105,14 @@ void Mesh::updateBounds(QVector3D pos) {
     if (pos.z() > m_bounds_max.z()) {
         m_bounds_max.setZ(pos.z());
     }
+}
+
+QVector3D Mesh::boundsMin(){
+    return m_bounds_min;
+}
+
+QVector3D Mesh::boundsMax(){
+    return m_bounds_max;
 }
 
 void Mesh::pointbuffer() {
@@ -262,10 +260,26 @@ const GLfloat* Mesh::dataTrianglesPositions(void) const {
     return m_vertex_pos.constData();
 }
 
-const GLfloat* Mesh::datadataTrianglesNormals(void) const {
+const GLfloat* Mesh::dataTrianglesNormals(void) const {
     return m_vertex_n.constData();
 }
 
 const GLfloat* Mesh::dataTrianglesUVWs(void) const{
     return m_vertex_uvw.constData();
+}
+
+int Mesh::countPointPositions(void) const{
+    return m_pt_pos.size();
+}
+
+int Mesh::countTrianglesPositions(void) const{
+    return m_vertex_pos.size();
+}
+
+int Mesh::countTrianglesNormals(void) const{
+    return m_vertex_n.size();
+}
+
+int Mesh::countTrianglesUVWs(void) const{
+    return m_vertex_uvw.size();
 }

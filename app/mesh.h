@@ -3,27 +3,26 @@
 
 #include <QObject>
 #include <QMatrix4x4>
+#include <QException>
 
 #include "geometry_interface.h"
 #include "primatives.h"
 
-enum retvals {
-    SUCCESS,
-    FAILURE
+class MeshAddPointFailed : public QException{
+public:
+    void raise(void) const {throw *this;}
+    MeshAddPointFailed* clone(void) const{return new MeshAddPointFailed(*this);}
 };
 
-class Mesh : public QObject, Geometry_Interface {
+class Mesh : public QObject, public Geometry_Interface {
     Q_OBJECT
   public:
-    explicit Mesh(GLfloat,
-                  GLfloat,
-                  int,
-                  GLfloat,
-                  GLfloat,
+    explicit Mesh(int,
                   int,
                   QObject* parent = 0);
+//    Mesh(void);
     ~Mesh();
-    int addPoint(QVector3D);
+    void addPoint(QVector3D);
     const Point& getPoint(int, int) const;
     void setPoint(int, int, Point&);
     QMatrix4x4 centeringTransform(void);
@@ -33,20 +32,20 @@ class Mesh : public QObject, Geometry_Interface {
     // implementations of interface
     void clear(void);
     const GLfloat* dataTrianglesPositions(void) const;
-    const GLfloat* datadataTrianglesNormals(void) const;
+    const GLfloat* dataTrianglesNormals(void) const;
     const GLfloat* dataTrianglesUVWs(void) const;
     const GLfloat* dataPointPositions(void) const;
+    int countTrianglesPositions(void) const;
+    int countTrianglesNormals(void) const;
+    int countTrianglesUVWs(void) const;
+    int countPointPositions(void) const;
   private:
     // methods
     void pointbuffer(void);
     void triangulate(void);
     void updateBounds(QVector3D);
     // data
-    GLfloat m_minX;
-    GLfloat m_maxX;
     int m_stepX;
-    GLfloat m_minY;
-    GLfloat m_maxY;
     int m_stepY;
     int m_index_x;
     int m_index_y;
