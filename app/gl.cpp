@@ -89,9 +89,38 @@ void GL::initializeGL(void) {
     m_mvpMatLoc2 = m_prog2->uniformLocation("mvpMat");
     m_prog2->release();
 
+    // prep the base grid
+    QFile v_grid_shad_source_file(V_SHAD_GRID_PATH);
+    v_grid_shad_source_file.open(QIODevice::ReadOnly);
+    QString v_grid_shad_source = v_grid_shad_source_file.readAll();
+    v_grid_shad_source_file.close();
+    QFile f_grid_shad_source_file(F_SHAD_GRID_PATH);
+    f_grid_shad_source_file.open(QIODevice::ReadOnly);
+    QString f_grid_shad_source = f_grid_shad_source_file.readAll();
+    f_grid_shad_source_file.close();
 
+    m_prog_grid = new QOpenGLShaderProgram;
+    m_prog_grid->addShaderFromSourceCode(QOpenGLShader::Vertex, v_grid_shad_source);
+    m_prog_grid->addShaderFromSourceCode(QOpenGLShader::Fragment, f_grid_shad_source);
+    m_prog_grid->bindAttributeLocation("vp", 0);
+    m_prog_grid->bindAttributeLocation("vc", 1);
+    m_prog_grid->link();
+    m_prog_grid->bind();
+    m_mvpMatLoc_grid = m_prog_grid->uniformLocation("mvpMat");
+    m_prog_grid->release();
 
-
+    m_vao_grid.create();
+    m_vao_grid.bind();
+    grid _grid(5.0f, 10);
+    m_vbo_grid.create();
+    m_vbo_grid.bind();
+    m_vbo_grid.allocate(_grid.getLineData(), _grid.getLineCount()*sizeof(GLfloat));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
+    m_vbo_grid.release();
+    m_vao_grid.release();
 
     // prepare the geo
     m_vao.create();
@@ -150,6 +179,11 @@ void GL::initializeGL(void) {
 }
 
 void GL::paintGL() {
+    QMatrix4x4 mvpMat;
+    QMatrix4x4 y_on_horz;
+    y_on_horz.setToIdentity();
+    y_on_horz.rotate(-90.0f, QVector3D(1, 0, 0));
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -160,19 +194,28 @@ void GL::paintGL() {
 
     //    m_modelMat.setToIdentity();
 
+    m_vao_grid.bind();
+    m_prog_grid->bind();
+    mvpMat = m_projectionMat * m_viewMat * m_modelMat * y_on_horz;
+    m_prog_grid->setUniformValue(m_mvpMatLoc_grid, mvpMat);
+    m_vbo_grid.bind();
+    glDrawArrays(GL_LINES, 0, m_vbo_grid.size() / int(sizeof(GLfloat)) / 3 / 2);
+    m_vbo_grid.release();
+    m_prog_grid->release();
+    m_vao_grid.release();
+
+
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
     m_prog->bind();
     //    QMatrix4x4 mvpMat = m_projectionMat * m_viewMat * m_modelMat;
-    QMatrix4x4 y_on_horz;
-    y_on_horz.setToIdentity();
-    y_on_horz.rotate(-90.0f, QVector3D(1, 0, 0));
-    QMatrix4x4 mvpMat = m_projectionMat
-                        * m_viewMat
-                        * m_modelMat
-                        * y_on_horz
-                        * m_rangescaleMat
-                        * m_centeringMat;
+
+    mvpMat = m_projectionMat
+             * m_viewMat
+             * m_modelMat
+             * y_on_horz
+             * m_rangescaleMat
+             * m_centeringMat;
 
     m_prog->setUniformValue(m_mvpMatLoc, mvpMat);
 
@@ -181,14 +224,14 @@ void GL::paintGL() {
     //    qDebug() << "vb size:" << m_vertex_buffer.size();
     //    qDebug() << "size of glfloat << " << sizeof(GLfloat);
     if (m_vertex_buffer.size() != 0) {
-        glDrawArrays(GL_TRIANGLES, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
+                glDrawArrays(GL_TRIANGLES, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
     }
     m_prog->release();
     m_prog2->bind();
     m_prog2->setUniformValue(m_mvpMatLoc2, mvpMat);
 
     if (m_vertex_buffer.size() != 0) {
-        glDrawArrays(GL_POINTS, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
+                glDrawArrays(GL_POINTS, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
     }
     m_vertex_buffer.release();
     m_prog2->release();

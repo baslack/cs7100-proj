@@ -7,7 +7,6 @@
 class grid {
   public:
     grid(GLfloat, int);
-    ~grid();
     //    GLfloat* getPointData(void);
     //    int getPointCount(void);
     const GLfloat* getLineData(void) const;

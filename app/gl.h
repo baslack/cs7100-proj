@@ -84,6 +84,7 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     // shader memory locations
     int m_mvpMatLoc;
     int m_mvpMatLoc2;
+    int m_mvpMatLoc_grid;
     // ui event data members
 
   protected:

@@ -6,8 +6,19 @@ grid::grid(GLfloat size, int steps) {
     for (int i = 0; i < steps + 1; i++) {
         m_data_lines.push_back(i * step - size);
         m_data_lines.push_back(-size);
+        m_data_lines.push_back(0.0f);
+        if (i == 5) {
+            m_data_lines.push_back(1.0f);
+            m_data_lines.push_back(0.0f);
+            m_data_lines.push_back(0.0f);
+        } else {
+            m_data_lines.push_back(0.3f);
+            m_data_lines.push_back(0.3f);
+            m_data_lines.push_back(0.3f);
+        }
         m_data_lines.push_back(i * step - size);
         m_data_lines.push_back(size);
+        m_data_lines.push_back(0.0f);
         if (i == 5) {
             m_data_lines.push_back(1.0f);
             m_data_lines.push_back(0.0f);
@@ -18,11 +29,22 @@ grid::grid(GLfloat size, int steps) {
             m_data_lines.push_back(0.3f);
         }
     }
-    for (int j = 0; j < steps; j++) {
+    for (int j = 0; j < steps + 1; j++) {
         m_data_lines.push_back(-size);
         m_data_lines.push_back(j * step - size);
+        m_data_lines.push_back(0.0f);
+        if (j == 5) {
+            m_data_lines.push_back(0.0f);
+            m_data_lines.push_back(1.0f);
+            m_data_lines.push_back(0.0f);
+        } else {
+            m_data_lines.push_back(0.3f);
+            m_data_lines.push_back(0.3f);
+            m_data_lines.push_back(0.3f);
+        }
         m_data_lines.push_back(size);
         m_data_lines.push_back(j * step - size);
+        m_data_lines.push_back(0.0f);
         if (j == 5) {
             m_data_lines.push_back(0.0f);
             m_data_lines.push_back(1.0f);
@@ -33,6 +55,18 @@ grid::grid(GLfloat size, int steps) {
             m_data_lines.push_back(0.3f);
         }
     }
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(-size);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(1.0f);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(size);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(0.0f);
+    m_data_lines.push_back(1.0f);
 }
 
 const GLfloat* grid::getLineData() const{

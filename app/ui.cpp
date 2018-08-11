@@ -287,8 +287,8 @@ void ui::onVisualize() {
     log->append("Creating Points\n");
     for (int i = 0; i < x_steps; i++) {
         for (int j = 0; j < y_steps; j++) {
-            input_vector[x_index] = i * x_slice;
-            input_vector[y_index] = j * y_slice;
+            input_vector[x_index] = i * x_slice + x_min;
+            input_vector[y_index] = j * y_slice + y_min;
             this->currentAdaptor->call(input_vector, result);
             visgeo->addPoint(QVector3D(
                                  input_vector[x_index],
