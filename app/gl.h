@@ -51,7 +51,10 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
 //    void setViewPos(float, float, float);
 //    void setFOV(float);
     void setCenteringMat(QMatrix4x4);
+    void setCentering(GLfloat);
     void setRangeScaleMat(QMatrix4x4);
+    void setRangeScaling(GLfloat);
+    void setPointsOnly(bool);
 
   private:
     // view data members
@@ -86,6 +89,9 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     int m_mvpMatLoc2;
     int m_mvpMatLoc_grid;
     // ui event data members
+    GLfloat m_centering = 0;
+    GLfloat m_range_scaling = 0;
+    bool m_pts_only = false;
 
   protected:
     // virtuals from OpenGLWidget to implement
@@ -102,6 +108,9 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     void performZoom(QPointF);
     void performRoll(QPointF);
     QVector3D arcballVector(QPointF);
+    // internals for matrix math
+    QMatrix4x4 CenteringMat(void);
+    QMatrix4x4 RangeScaleMat(void);
 };
 
 #endif // GL_H

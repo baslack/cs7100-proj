@@ -10,6 +10,7 @@
 #include <QIntValidator>
 #include <QDir>
 #include <QDebug>
+#include <QSlider>
 #include "cube.h"
 
 #define TEMPSTATIC 3
@@ -146,15 +147,61 @@ void ui::setupLeft() {
         );
     }
     param_layout->addStretch();
+    //centering
+    QLabel* center_lb = new QLabel("Centering:", lwrapper);
+    QSlider* center = new QSlider(lwrapper);
+    center->setOrientation(Qt::Horizontal);
+    center->setMinimum(0);
+    center->setMaximum(100);
+    center->setTickInterval(1);
+    center->setTickPosition(QSlider::NoTicks);
+    center->setValue(0);
+    connect(
+        center,
+        &QSlider::valueChanged,
+        this,
+        &ui::onCenteringChanged
+    );
+    //range scaling
+    QLabel* range_lb = new QLabel("Range Scaling:", lwrapper);
+    QSlider* range = new QSlider(lwrapper);
+    range->setOrientation(Qt::Horizontal);
+    range->setMinimum(0);
+    range->setMaximum(100);
+    range->setTickInterval(1);
+    range->setTickPosition(QSlider::NoTicks);
+    range->setValue(0);
+    connect(
+        range,
+        &QSlider::valueChanged,
+        this,
+        &ui::onRangeScalingChanged
+    );
+    // adaptive
+    QPushButton* adaptiveVisualize = new QPushButton(lwrapper);
+    adaptiveVisualize->setText("Visualize\nAdaptive");
+    adaptiveVisualize->setToolTip("Perform an adaptive visualization (points only)");
+    connect(
+        adaptiveVisualize,
+        &QPushButton::clicked,
+        this,
+        &ui::onAdaptiveVisualize
+    );
+    // uniform
     QPushButton* visualizeButton = new QPushButton(lwrapper);
-    visualizeButton->setText("Visualize");
-    visualizeButton->setToolTip("Visualize the selected function using the parameters set above.");
+    visualizeButton->setText("Visualize\nUniform");
+    visualizeButton->setToolTip("Perform a uniformly tesselated visualization.");
     connect(
         visualizeButton,
         SIGNAL(clicked()),
         this,
         SLOT(onVisualize())
     );
+    param_layout->addWidget(center_lb);
+    param_layout->addWidget(center);
+    param_layout->addWidget(range_lb);
+    param_layout->addWidget(range);
+    param_layout->addWidget(adaptiveVisualize);
     param_layout->addWidget(visualizeButton);
     lwrapper->setLayout(param_layout);
     lwrapper->setMaximumWidth(LEFT_WIDTH);
@@ -198,6 +245,18 @@ void ui::onAdaptorChanged(void) {
     varying_adaptor_indexes.clear();
     setupLeft();
     this->show();
+}
+
+void ui::onCenteringChanged(){
+//TODO: tie ui to GL centering
+}
+
+void ui::onRangeScalingChanged(){
+//TODO: tie ui to GL scaling
+}
+
+void ui::onAdaptiveVisualize(){
+
 }
 
 void ui::onVisualize() {

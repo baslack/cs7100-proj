@@ -2,6 +2,8 @@
 #define GEOMETRY_INTERFACE_H
 
 #include <qopengl.h>
+#include <QMatrix4x4>
+#include <QVector3D>
 
 class Geometry_Interface {
   public:
@@ -15,6 +17,10 @@ class Geometry_Interface {
     virtual int countTrianglesUVWs(void) const = 0;
     virtual const GLfloat* dataPointPositions(void) const = 0;
     virtual int countPointPositions(void) const = 0;
+    virtual QMatrix4x4 centeringTransform(void) = 0;
+    virtual QMatrix4x4 rangeScalingTransform(void) = 0;
+    virtual QVector3D boundsMin(void)=0;
+    virtual QVector3D boundsMax(void)=0;
 };
 
 #endif // GEOMETRY_INTERFACE_H

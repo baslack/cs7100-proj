@@ -38,7 +38,10 @@ class ui : public QMainWindow {
 
   public slots:
     void onVisualize(void);
+    void onAdaptiveVisualize(void);
     void onMeshDataReady(void);
+    void onCenteringChanged(void);
+    void onRangeScalingChanged(void);
 
   private:
     // adaptors

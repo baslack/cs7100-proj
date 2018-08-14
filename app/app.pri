@@ -11,7 +11,9 @@ SOURCES += \
     $$PWD/cube.cpp \
     $$PWD/mesh.cpp \
     $$PWD/primatives.cpp \
-    $$PWD/grid.cpp
+    $$PWD/grid.cpp \
+    $$PWD/derivatives.cpp \
+    $$PWD/adaptivemesh.cpp
 
 HEADERS += \
     ../app/ui.h \
@@ -27,7 +29,9 @@ HEADERS += \
     $$PWD/geometry_interface.h \
     $$PWD/mesh.h \
     $$PWD/primatives.h \
-    $$PWD/grid.h
+    $$PWD/grid.h \
+    $$PWD/derivatives.h \
+    $$PWD/adaptivemesh.h
 
 DISTFILES += \
     $$PWD/basicvertexshader.glsl \

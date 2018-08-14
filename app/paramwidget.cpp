@@ -19,24 +19,54 @@ ParamWidget::ParamWidget(
     this->name->setToolTip(tooltip);
     // static param
     base = new QLineEdit(QString::number(defaultval), this);
+    base->setToolTip("Base value of a static parameter.");
     base->setValidator(d_valid);
     // varying param
+    QLabel* min_lb = new QLabel("min:", this);
     min = new QLineEdit(QString::number(defaultval), this);
+    min->setToolTip("Minimum value of a varying parameter.");
     min->setValidator(d_valid);
+    QLabel* max_lb = new QLabel("max:", this);
     max = new QLineEdit(QString::number(defaultval), this);
+    max->setToolTip("Maximum value of varying parameter.");
     max->setValidator(d_valid);
+    QLabel* steps_lb = new QLabel("steps:", this);
     steps = new QLineEdit(QString::number(DEF_STEPS), this);
+    steps->setToolTip("Number of steps for varying parameter in uniform tesselation.");
     steps->setValidator(i_valid);
     // varying checkbox
     varying = new QCheckBox(this);
     varying->setTristate(false);
     varying->setCheckState(Qt::CheckState::Unchecked);
+    varying->setToolTip("Toggles static/varying parameter.");
     //layouts
+    //min
+    QVBoxLayout* min_chunk = new QVBoxLayout();
+    min_chunk->setContentsMargins(0,0,0,0);
+    min_chunk->addWidget(min_lb);
+    min_chunk->addWidget(min);
+    QWidget* min_wrapper = new QWidget(this);
+    min_wrapper->setLayout(min_chunk);
+    //max
+    QVBoxLayout* max_chunk = new QVBoxLayout();
+    max_chunk->setContentsMargins(0,0,0,0);
+    max_chunk->addWidget(max_lb);
+    max_chunk->addWidget(max);
+    QWidget* max_wrapper = new QWidget(this);
+    max_wrapper->setLayout(max_chunk);
+    //steps
+    QVBoxLayout* steps_chunk = new QVBoxLayout();
+    steps_chunk->setContentsMargins(0,0,0,0);
+    steps_chunk->addWidget(steps_lb);
+    steps_chunk->addWidget(steps);
+    QWidget* steps_wrapper = new QWidget(this);
+    steps_wrapper->setLayout(steps_chunk);
+    //On state visible controls
     QHBoxLayout* onLayout = new QHBoxLayout(this);
     onLayout->setContentsMargins(0,0,0,0);
-    onLayout->addWidget(min);
-    onLayout->addWidget(max);
-    onLayout->addWidget(steps);
+    onLayout->addWidget(min_wrapper);
+    onLayout->addWidget(max_wrapper);
+    onLayout->addWidget(steps_wrapper);
     onState = new QWidget(this);
     onState->setLayout(onLayout);
     onState->setVisible(false);

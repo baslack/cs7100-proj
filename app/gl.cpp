@@ -224,14 +224,14 @@ void GL::paintGL() {
     //    qDebug() << "vb size:" << m_vertex_buffer.size();
     //    qDebug() << "size of glfloat << " << sizeof(GLfloat);
     if (m_vertex_buffer.size() != 0) {
-                glDrawArrays(GL_TRIANGLES, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
+        glDrawArrays(GL_TRIANGLES, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
     }
     m_prog->release();
     m_prog2->bind();
     m_prog2->setUniformValue(m_mvpMatLoc2, mvpMat);
 
     if (m_vertex_buffer.size() != 0) {
-                glDrawArrays(GL_POINTS, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
+        glDrawArrays(GL_POINTS, 0, m_vertex_buffer.size() / int(sizeof(GLfloat)) / 3);
     }
     m_vertex_buffer.release();
     m_prog2->release();
@@ -441,6 +441,36 @@ void GL::updatePointBuffer(const GLfloat* data, int count) {
 void GL::forceUpdate() {
     makeCurrent();
     update();
+}
+
+void GL::setCentering(GLfloat centering) {
+    makeCurrent();
+    m_centering = centering;
+    update();
+}
+
+void GL::setRangeScaling(GLfloat range_scaling) {
+    makeCurrent();
+    m_range_scaling = range_scaling;
+    update();
+}
+
+QMatrix4x4 GL::CenteringMat(void) {
+    QMatrix4x4 retVal, Identity;
+    Identity.setToIdentity();
+    retVal = (1 - m_centering) * Identity + (m_centering) * m_centeringMat;
+    return retVal;
+}
+
+QMatrix4x4 GL::RangeScaleMat(void) {
+    QMatrix4x4 retVal, Identity;
+    Identity.setToIdentity();
+    retVal = (1 - m_range_scaling) * Identity + (m_range_scaling) * m_rangescaleMat;
+    return retVal;
+}
+
+void GL::setPointsOnly(bool state){
+    m_pts_only = state;
 }
 
 // getters
