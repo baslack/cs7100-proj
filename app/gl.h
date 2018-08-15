@@ -79,15 +79,17 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
 
     QOpenGLVertexArrayObject m_vao_grid;
     QOpenGLBuffer m_vbo_grid;
+    QOpenGLVertexArrayObject m_vao_points;
 
     // shader data members
     QOpenGLShaderProgram* m_prog;
-    QOpenGLShaderProgram* m_prog2;
+    QOpenGLShaderProgram* m_prog_points;
     QOpenGLShaderProgram* m_prog_grid;
     // shader memory locations
     int m_mvpMatLoc;
-    int m_mvpMatLoc2;
+    int m_mvpMatLoc_points;
     int m_mvpMatLoc_grid;
+    int m_mvMatLoc;
     // ui event data members
     GLfloat m_centering = 0;
     GLfloat m_range_scaling = 0;

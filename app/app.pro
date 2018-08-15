@@ -10,3 +10,5 @@ include(app.pri)
 
 DISTFILES += \
     app.pri
+
+QMAKE_POST_LINK += $$quote(cp -f $${PWD}/*.glsl $${OUT_PWD})

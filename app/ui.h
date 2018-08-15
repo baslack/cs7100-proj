@@ -23,6 +23,7 @@ class ui : public QMainWindow {
     Q_OBJECT
   public:
     explicit ui(QWidget* parent = Q_NULLPTR);
+//    ~ui(void);
     void setup(void);
 
   signals:

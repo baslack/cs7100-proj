@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QSurfaceFormat>
+#include <iostream>
 #include "ui.h"
 
 void setupOpenGL(int, int, int);
@@ -10,7 +11,9 @@ int main(int argc, char** argv) {
     ui ui;
     ui.setup();
     ui.show();
-    return app.exec();
+    int test = app.exec();
+//    return app.exec();
+    return test;
 }
 
 void setupOpenGL(int major, int minor, int samples) {
@@ -22,7 +25,7 @@ void setupOpenGL(int major, int minor, int samples) {
 
     format.setRenderableType(QSurfaceFormat::RenderableType::OpenGL);
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-    format.setOption(QSurfaceFormat::FormatOption::DebugContext);
+//    format.setOption(QSurfaceFormat::FormatOption::DebugContext);
     format.setSwapBehavior(QSurfaceFormat::SwapBehavior::DefaultSwapBehavior);
     format.setSwapInterval(1);
     format.setRedBufferSize(8);

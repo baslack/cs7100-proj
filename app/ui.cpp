@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QSlider>
 #include "cube.h"
+#include <cmath>
 
 #define TEMPSTATIC 3
 #define FIELD_MAXWIDTH 150
@@ -64,6 +65,11 @@ bool ui::loadPlugin() {
         return false;
     }
 }
+
+//ui::~ui(){
+//    Mesh* temp = static_cast<Mesh*>(m_geo);
+//    delete temp;
+//}
 
 void ui::createActions() {
     int index = 0;
@@ -150,6 +156,7 @@ void ui::setupLeft() {
     //centering
     QLabel* center_lb = new QLabel("Centering:", lwrapper);
     QSlider* center = new QSlider(lwrapper);
+    center->setObjectName("center_slider");
     center->setOrientation(Qt::Horizontal);
     center->setMinimum(0);
     center->setMaximum(100);
@@ -165,6 +172,7 @@ void ui::setupLeft() {
     //range scaling
     QLabel* range_lb = new QLabel("Range Scaling:", lwrapper);
     QSlider* range = new QSlider(lwrapper);
+    range->setObjectName("range_slider");
     range->setOrientation(Qt::Horizontal);
     range->setMinimum(0);
     range->setMaximum(100);
@@ -247,16 +255,34 @@ void ui::onAdaptorChanged(void) {
     this->show();
 }
 
-void ui::onCenteringChanged(){
-//TODO: tie ui to GL centering
+void ui::onCenteringChanged() {
+    //TODO: tie ui to GL centering
+    QSlider* center = lwrapper->findChild<QSlider*>("center_slider", Qt::FindChildrenRecursively);
+    int temp = center->value();
+    if (temp == 0) {
+        viewport->setCentering(0);
+    } else if (temp == 100) {
+        viewport->setCentering(1);
+
+    } else {
+        viewport->setCentering(GLfloat(temp)/100);
+    }
 }
 
-void ui::onRangeScalingChanged(){
-//TODO: tie ui to GL scaling
+void ui::onRangeScalingChanged() {
+    //TODO: tie ui to GL scaling
+    QSlider* range = lwrapper->findChild<QSlider*>("range_slider", Qt::FindChildrenRecursively);
+    int temp = range->value();
+    if (temp == 0){
+        viewport->setRangeScaling(0);
+    }else if (temp == 100){
+        viewport->setRangeScaling(1);
+    }else{
+        viewport->setRangeScaling(GLfloat(std::log(temp)/std::log(100)));
+    }
 }
 
-void ui::onAdaptiveVisualize(){
-
+void ui::onAdaptiveVisualize() {
 }
 
 void ui::onVisualize() {
@@ -376,5 +402,7 @@ void ui::onMeshDataReady(void) {
         m_geo->dataPointPositions(),
         m_geo->countPointPositions()
     );
+    viewport->setCenteringMat(m_geo->centeringTransform());
+    viewport->setRangeScaleMat(m_geo->rangeScalingTransform());
     viewport->forceUpdate();
 }

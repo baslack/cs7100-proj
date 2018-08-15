@@ -9,12 +9,15 @@ class cube
 {
 public:
     cube(GLfloat);
-    const GLfloat* constData(void);
-    int count(void);
+    const GLfloat* vertexData(void) const;
+    int vertexDataCount(void) const;
+    const GLfloat* normalData(void) const;
+    int normalDataCount(void) const;
 private:
-    QVector<QVector<int>> faces;
-    QVector<QVector3D> points;
-    QVector<GLfloat> m_data;
+    QVector<QVector<int>> m_faces;
+    QVector<QVector3D> m_points;
+    QVector<GLfloat> m_vertex_data;
+    QVector<GLfloat> m_normal_data;
 };
 
 #endif // CUBE_H
