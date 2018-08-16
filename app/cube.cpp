@@ -29,6 +29,7 @@ cube::cube(GLfloat size) {
         QVector3D B = m_points[(*face)[2]-1] - m_points[(*face)[1]-1];
         QVector3D face_normal = QVector3D::crossProduct(A, B);
         face_normal.normalize();
+        face_normal *= -1;
         for (auto point = (*face).begin(); point != (*face).end(); point++){
             m_vertex_data.push_back(m_points[(*point)-1].x());
             m_vertex_data.push_back(m_points[(*point)-1].y());

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include "geometry_interface.h"
+#include "adaptorinterface.h"
 #include <qopengl.h>
 #include "derivatives.h"
 #include <QVector>
@@ -21,6 +22,7 @@ class Region {
     void setMaxDerivative(bool, double);
     bool operator< (const Region&) const;
     static bool Compare(const Region&, const Region&);
+    double getArea(void) const;
   private:
     QVector2D m_min;
     QVector2D m_max;
@@ -32,7 +34,7 @@ class AdaptiveMesh : public QObject, public Geometry_Interface {
     Q_OBJECT
   public:
     explicit AdaptiveMesh(
-        void (*)(const QVector<double>&, double&),
+        AdaptorInterface*,
         const QVector<double>&,
         int,
         int,
@@ -41,27 +43,33 @@ class AdaptiveMesh : public QObject, public Geometry_Interface {
         int,
         QObject* parent = 0
     );
-    void clear(void) = 0;
-    const GLfloat* dataTrianglesPositions(void) const = 0;
-    int countTrianglesPositions(void) const = 0;
-    const GLfloat* dataTrianglesNormals(void) const = 0;
-    int countTrianglesNormals(void) const = 0;
-    const GLfloat* dataTrianglesUVWs(void) const = 0;
-    int countTrianglesUVWs(void) const = 0;
-    const GLfloat* dataPointPositions(void) const = 0;
-    int countPointPositions(void) const = 0;
-    QMatrix4x4 centeringTransform(void) = 0;
-    QMatrix4x4 rangeScalingTransform(void) = 0;
-    QVector3D boundsMin(void)=0;
-    QVector3D boundsMax(void)=0;
+    void clear(void);
+    const GLfloat* dataTrianglesPositions(void) const;
+    int countTrianglesPositions(void) const;
+    const GLfloat* dataTrianglesNormals(void) const;
+    int countTrianglesNormals(void) const;
+    const GLfloat* dataTrianglesUVWs(void) const;
+    int countTrianglesUVWs(void) const;
+    const GLfloat* dataPointPositions(void) const;
+    int countPointPositions(void) const;
+    QMatrix4x4 centeringTransform(void);
+    QMatrix4x4 rangeScalingTransform(void);
+    QVector3D boundsMin(void);
+    QVector3D boundsMax(void);
+    void dumpPoints(void);
   private:
     void updateBounds(QVector3D);
     void performDerivative(Region&);
     Region performSplit(Region&);
     void pushRegionToPoints(const Region&);
     std::vector<Region> m_regions_heap;
+    std::vector<Region> m_small_regions;
     QVector<GLfloat> m_pts;
-    void (*m_fn)(const QVector<double>&, double&);
+    QVector<GLfloat> m_verts;
+    QVector<GLfloat> m_normals;
+    QVector<GLfloat> m_uvs;
+//    void (*m_fn)(const QVector<double>&, double&);
+    AdaptorInterface* m_adpt;
     const QVector<double>& m_orig_x;
     int m_x_index;
     int m_y_index;
@@ -69,7 +77,7 @@ class AdaptiveMesh : public QObject, public Geometry_Interface {
     QVector3D m_min = {0,0,0};
     QVector3D m_max = {0,0,0};
   signals:
-
+    void pointDataReady(void);
   public slots:
 };
 

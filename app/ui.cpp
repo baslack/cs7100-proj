@@ -11,6 +11,8 @@
 #include <QDir>
 #include <QDebug>
 #include <QSlider>
+#include <QImage>
+#include <QFileDialog>
 #include "cube.h"
 #include <cmath>
 
@@ -92,6 +94,18 @@ void ui::createActions() {
 }
 
 void ui::createMenus() {
+    QAction* save_action = new QAction(this);
+    save_action->setText("Save Frame Buffer...");
+    save_action->setToolTip("Saves the current frame buffer to disk.");
+    save_action->setShortcut(QString("Ctrl+S"));
+    connect(
+        save_action,
+        &QAction::triggered,
+        this,
+        &ui::onSave
+    );
+    file_menu = menuBar()->addMenu("File");
+    file_menu->addAction(save_action);
     function_menu = menuBar()->addMenu("Functions");
     for (auto iter = adaptor_actions.begin();
             iter != adaptor_actions.end();
@@ -106,7 +120,7 @@ void ui::setup() {
     createMenus();
     setupLeft();
     setupRight();
-    this->setCentralWidget(new QWidget());
+    this->setCentralWidget(new QWidget(this));
     QHBoxLayout* cw_layout = new QHBoxLayout();
     cw_layout->addWidget(lwrapper);
     cw_layout->addWidget(rwrapper);
@@ -117,7 +131,8 @@ void ui::setup() {
 void ui::setupLeft() {
     if (lwrapper != Q_NULLPTR) {
         QWidget* new_lwrapper = new QWidget(this);
-        this->centralWidget()->layout()->replaceWidget(lwrapper, new_lwrapper);
+        QLayoutItem* dumpme = this->centralWidget()->layout()->replaceWidget(lwrapper, new_lwrapper);
+        delete dumpme;
         delete lwrapper;
         lwrapper = new_lwrapper;
         params.clear();
@@ -219,7 +234,7 @@ void ui::setupRight() {
     if (rwrapper != Q_NULLPTR) {
         delete rwrapper;
     }
-    rwrapper = new QWidget();
+    rwrapper = new QWidget(this);
     // GL viewport
     this->viewport = new GL();
     this->viewport->setMinimumWidth(VIEW_MINWIDTH);
@@ -256,7 +271,6 @@ void ui::onAdaptorChanged(void) {
 }
 
 void ui::onCenteringChanged() {
-    //TODO: tie ui to GL centering
     QSlider* center = lwrapper->findChild<QSlider*>("center_slider", Qt::FindChildrenRecursively);
     int temp = center->value();
     if (temp == 0) {
@@ -265,27 +279,94 @@ void ui::onCenteringChanged() {
         viewport->setCentering(1);
 
     } else {
-        viewport->setCentering(GLfloat(temp)/100);
+        viewport->setCentering(GLfloat(temp) / 100);
     }
 }
 
 void ui::onRangeScalingChanged() {
-    //TODO: tie ui to GL scaling
     QSlider* range = lwrapper->findChild<QSlider*>("range_slider", Qt::FindChildrenRecursively);
     int temp = range->value();
-    if (temp == 0){
+    if (temp == 0) {
         viewport->setRangeScaling(0);
-    }else if (temp == 100){
+    } else if (temp == 100) {
         viewport->setRangeScaling(1);
-    }else{
-        viewport->setRangeScaling(GLfloat(std::log(temp)/std::log(100)));
+    } else {
+        viewport->setRangeScaling(GLfloat(std::log(temp) / std::log(100)));
     }
 }
 
+#define ADAPTIVE_REGIONS 2048
+
 void ui::onAdaptiveVisualize() {
+    viewport->setPointsOnly(true);
+    // get the params off the widgets
+    log->append("Starting Visualization...\n");
+
+    // bail out
+    if (varying_adaptor_indexes.size() < 2) {
+        log->append("Error: only single paramater selected for varying.\n");
+        return;
+    }
+    // id the varying params
+    int x_index = varying_adaptor_indexes[0];
+    int y_index = varying_adaptor_indexes[1];
+    // id the static params
+    QVector<int> static_indexes;
+    for (int i = 0; i < params.size(); i++) {
+        static_indexes.push_back(i);
+    }
+    static_indexes.removeAll(x_index);
+    static_indexes.removeAll(y_index);
+    // setup an input vector & result for call
+    QVector<double> input_vector(params.size());
+    // pull the static params base values
+    for (auto this_index = static_indexes.begin();
+            this_index != static_indexes.end();
+            this_index++) {
+        // for each of the static indexes, pull the field contents
+        input_vector[(*this_index)] = params[(*this_index)]->getBase();
+        log->append("Static param: "
+                    + params[(*this_index)]->getName()
+                    + " set to, "
+                    + QString::number(params[(*this_index)]->getBase())
+                    + "\n"
+                   );
+    }
+    // pull the ranges and steps from the varying pm widgets
+    double x_min = params[x_index]->getMin();
+    double x_max = params[x_index]->getMax();
+    //    int x_steps = params[x_index]->getSteps();
+    double y_min = params[y_index]->getMin();
+    double y_max = params[y_index]->getMax();
+    //    int y_steps = params[y_index]->getSteps();
+
+    // Mesh will generated sizes by bounds
+    // UI will make the calls
+    log->append("Setting up Adaptive Mesh\n");
+    if (m_geo != Q_NULLPTR) {
+        delete m_geo;
+    }
+    AdaptiveMesh* a_mesh = new AdaptiveMesh(
+        currentAdaptor,
+        input_vector,
+        x_index,
+        y_index,
+        QVector2D(x_min, y_min),
+        QVector2D(x_max, y_max),
+        ADAPTIVE_REGIONS
+    );
+    m_geo = a_mesh;
+    connect(
+        a_mesh,
+        &AdaptiveMesh::pointDataReady,
+        this,
+        &ui::onMeshDataReady
+    );
+    a_mesh->dumpPoints();
 }
 
 void ui::onVisualize() {
+    viewport->setPointsOnly(false);
     log->append("Starting Visualization...\n");
     // 1. get the params of tess form the widgets
     //    log->append("Testing VBO update...\n");
@@ -406,3 +487,16 @@ void ui::onMeshDataReady(void) {
     viewport->setRangeScaleMat(m_geo->rangeScalingTransform());
     viewport->forceUpdate();
 }
+
+void ui::onSave(){
+    QImage fb = viewport->grabFramebuffer();
+    QString filename = QFileDialog::getSaveFileName(
+                this,
+                "Save Image",
+                QDir::homePath() + "/Desktop/",
+                "Images (*.png)",
+                0);
+    if (!filename.isEmpty()){
+        fb.save(filename, "PNG");
+    }
+;}

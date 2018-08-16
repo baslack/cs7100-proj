@@ -52,8 +52,15 @@ bool Region::Compare(const Region& lhs, const Region& rhs) {
     return (lhs.m_max_derivative < rhs.m_max_derivative);
 }
 
+double Region::getArea(void) const {
+    QVector2D size = m_max - m_min;
+    return size.x() * size.y();
+}
+
+#define THRESHOLD 0.001f
+
 AdaptiveMesh::AdaptiveMesh(
-    void (*fn)(const QVector<double>&, double&),
+    AdaptorInterface* adaptor,
     const QVector<double>& orig_x,
     int x_index,
     int y_index,
@@ -63,7 +70,7 @@ AdaptiveMesh::AdaptiveMesh(
     QObject* parent)
     :
     QObject(parent),
-    m_fn(fn),
+    m_adpt(adaptor),
     m_orig_x(orig_x),
     m_x_index(x_index),
     m_y_index(y_index),
@@ -77,26 +84,50 @@ AdaptiveMesh::AdaptiveMesh(
     std::make_heap(m_regions_heap.begin(), m_regions_heap.end());
     m_regions_heap.push_back(start);
     std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
-    while (int(m_regions_heap.size()) < max_regions) {
+    int count = 0;
+    while ((int(m_regions_heap.size()) < max_regions) && (int(m_regions_heap.size()) > 0)) {
         // pop top heap
         std::pop_heap(m_regions_heap.begin(), m_regions_heap.end());
         Region popped = m_regions_heap.back();
         m_regions_heap.pop_back();
         // split
+//        qDebug() << "popped: " << count << "/" << popped.getMinpoint() << popped.getMaxpoint() << popped.getMaxDerivative() << popped.getArea();
         Region new_region = performSplit(popped);
         // perform derivative
         performDerivative(popped);
         performDerivative(new_region);
-        // add both back to heap
-        m_regions_heap.push_back(popped);
-        std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
-        m_regions_heap.push_back(new_region);
-        std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
+        // add both back to heap if large enough
+        if (new_region.getArea() < THRESHOLD) {
+//            new_region.setMaxDerivative(false, -1000);
+            m_small_regions.push_back(new_region);
+        }else{
+            m_regions_heap.push_back(new_region);
+            std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
+        }
+        if (popped.getArea() < THRESHOLD) {
+//            popped.setMaxDerivative(false, -1000);
+            m_small_regions.push_back(popped);
+        }else{
+            m_regions_heap.push_back(popped);
+            std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
+        }
+        count++;
+        if (count > (1<<16)){
+            qDebug() << "Exceeded Count!";
+            break;
+        }
     }
+}
+
+void AdaptiveMesh::dumpPoints(void) {
     // dump the regions points and results to the point array
     for (auto this_region : m_regions_heap) {
         pushRegionToPoints(this_region);
     }
+    for (auto this_region : m_small_regions){
+        pushRegionToPoints(this_region);
+    }
+    emit pointDataReady();
 }
 
 void AdaptiveMesh::performDerivative(Region& this_region) {
@@ -107,12 +138,17 @@ void AdaptiveMesh::performDerivative(Region& this_region) {
     h_x /= H_RATIO;
     double h_y = max.y() - min.y();
     h_y /= H_RATIO;
+
+    h_x = 1.0f;
+    h_y = 1.0f;
     QVector<double> scratch_x(m_orig_x);
     QVector2D mid = this_region.getMidpoint();
     scratch_x[m_x_index] = mid.x();
     scratch_x[m_y_index] = mid.y();
-    double dzdx = fourth_derivative(m_fn, scratch_x, m_x_index, h_x);
-    double dzdy = fourth_derivative(m_fn, scratch_x, m_y_index, h_y);
+    double dzdx = fourth_derivative(m_adpt, scratch_x, m_x_index, h_x);
+    double dzdy = fourth_derivative(m_adpt, scratch_x, m_y_index, h_y);
+    dzdx = std::abs(dzdx);
+    dzdy = std::abs(dzdy);
     if (dzdx >= dzdy) {
         this_region.setMaxDerivative(true, dzdx);
     } else {
@@ -138,23 +174,26 @@ Region AdaptiveMesh::performSplit(Region& old_region) {
         new_max.setY(old_max.y());
         old_max.setY(old_mid.y());
     }
+    old_region.setMinpoint(old_min);
+    old_region.setMaxpoint(old_max);
     return Region(new_min, new_max);
 }
 
 void AdaptiveMesh::pushRegionToPoints(const Region& this_region) {
-    QVector2D min = this_region.getMinpoint();
-    QVector2D max = this_region.getMaxpoint();
+//    QVector2D min = this_region.getMinpoint();
+//    QVector2D max = this_region.getMaxpoint();
     QVector<QVector2D>pts;
-    pts.push_back(min);
-    pts.push_back(QVector2D(max.x(), min.y()));
-    pts.push_back(max);
-    pts.push_back(QVector2D(min.x(), max.y()));
+//    pts.push_back(min);
+//    pts.push_back(QVector2D(max.x(), min.y()));
+//    pts.push_back(max);
+//    pts.push_back(QVector2D(min.x(), max.y()));
+    pts.push_back(this_region.getMidpoint());
     double z = 0;
     QVector<double>scratch_x(m_orig_x);
     for (auto this_pt : pts) {
         scratch_x[m_x_index] = this_pt.x();
         scratch_x[m_y_index] = this_pt.y();
-        m_fn(scratch_x, z);
+        m_adpt->call(scratch_x, z);
         m_pts.push_back(this_pt.x());
         m_pts.push_back(this_pt.y());
         m_pts.push_back(GLfloat(z));
@@ -164,30 +203,36 @@ void AdaptiveMesh::pushRegionToPoints(const Region& this_region) {
 
 void AdaptiveMesh::clear(void) {
     m_regions_heap.clear();
+    m_pts.clear();
+    m_verts.clear();
+    m_normals.clear();
+    m_uvs.clear();
+    m_min = QVector3D(0, 0, 0);
+    m_max = QVector3D(0, 0, 0);
 }
 
 const GLfloat* AdaptiveMesh::dataTrianglesPositions(void)const {
-    return Q_NULLPTR;
+    return m_verts.constData();
 }
 
 int AdaptiveMesh::countTrianglesPositions(void) const {
-    return -1;
+    return m_verts.size();
 }
 
 const GLfloat* AdaptiveMesh::dataTrianglesNormals(void) const {
-    return Q_NULLPTR;
+    return m_normals.constData();
 }
 
 int AdaptiveMesh::countTrianglesNormals(void) const {
-    return -1;
+    return m_normals.size();
 }
 
 const GLfloat* AdaptiveMesh::dataTrianglesUVWs(void) const {
-    return Q_NULLPTR;
+    return m_uvs.constData();
 }
 
 int AdaptiveMesh::countTrianglesUVWs(void) const {
-    return -1;
+    return m_uvs.size();
 }
 
 const GLfloat* AdaptiveMesh::dataPointPositions(void) const {
@@ -214,10 +259,10 @@ QMatrix4x4 AdaptiveMesh::rangeScalingTransform(void) {
     GLfloat z_scale = 1;
     if (range.z() / range.x() >= range.z() / range.y() ) {
         z_scale = range.y() / range.z();
-    }else{
+    } else {
         z_scale = range.x() / range.z();
     }
-    retVal.scale(1,1,z_scale);
+    retVal.scale(1, 1, z_scale);
     return retVal;
 }
 

@@ -18,6 +18,7 @@
 #include "functionaction.h"
 #include "geometry_interface.h"
 #include "mesh.h"
+#include "adaptivemesh.h"
 
 class ui : public QMainWindow {
     Q_OBJECT
@@ -25,6 +26,7 @@ class ui : public QMainWindow {
     explicit ui(QWidget* parent = Q_NULLPTR);
 //    ~ui(void);
     void setup(void);
+
 
   signals:
     void adaptorChanged(void);
@@ -36,6 +38,7 @@ class ui : public QMainWindow {
     void updateVaryingAdaptorIndexes(int, bool);
     void setCurrentAdaptor(int);
     void onAdaptorChanged(void);
+    void onSave(void);
 
   public slots:
     void onVisualize(void);
@@ -54,6 +57,7 @@ class ui : public QMainWindow {
     // menu
     QVector<FunctionAction*> adaptor_actions;
     QMenu* function_menu;
+    QMenu* file_menu;
     void createMenus(void);
     void createActions(void);
 

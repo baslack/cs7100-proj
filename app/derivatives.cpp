@@ -10,7 +10,7 @@
 */
 
 double fourth_derivative(
-    void (*fn)(const QVector<double>&, double&),
+    AdaptorInterface* adpt,
     const QVector<double>& orig_x,
     int axis_index,
     double h) {
@@ -21,19 +21,19 @@ double fourth_derivative(
     scratch_x[axis_index] = orig_x[axis_index] + 2 * h;
     double term = 0;
     // calculate each term and total it up
-    fn(scratch_x, term);
+    adpt->call(scratch_x, term);
     retVal += term;
     scratch_x[axis_index] = orig_x[axis_index] + h;
-    fn(scratch_x, term);
+    adpt->call(scratch_x, term);
     retVal -= (4 * term);
     scratch_x[axis_index] = orig_x[axis_index];
-    fn(scratch_x, term);
+    adpt->call(scratch_x, term);
     retVal += (6 * term);
     scratch_x[axis_index] = orig_x[axis_index] - h;
-    fn(scratch_x, term);
+    adpt->call(scratch_x, term);
     retVal -= (4 * term);
     scratch_x[axis_index] = orig_x[axis_index] - 2 * h;
-    fn(scratch_x, term);
+    adpt->call(scratch_x, term);
     retVal += term;
     // divide out by offset to the fourth power
     retVal /= (h * h * h * h);

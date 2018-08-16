@@ -2,9 +2,10 @@
 #define DERIVATIVES_H
 
 #include <QVector>
+#include "adaptorinterface.h"
 
 double fourth_derivative(
-        void (*)(const QVector<double>&, double&),
+        AdaptorInterface*,
         const QVector<double>&,
         int,
         double);

@@ -84,7 +84,7 @@ void GL::initializeGL(void) {
     m_prog->addShaderFromSourceCode(QOpenGLShader::Fragment, f_shad_source);
     m_prog->bindAttributeLocation("ws_position", 0);
     m_prog->bindAttributeLocation("ws_normal", 1);
-//    m_prog->bindAttributeLocation("uvw", 2);
+    //    m_prog->bindAttributeLocation("uvw", 2);
     m_prog->link();
     m_prog->bind();
     m_mvpMatLoc = m_prog->uniformLocation("mvpMat");
@@ -131,7 +131,7 @@ void GL::initializeGL(void) {
     grid _grid(5.0f, 10);
     m_vbo_grid.create();
     m_vbo_grid.bind();
-    m_vbo_grid.allocate(_grid.getLineData(), _grid.getLineCount()*sizeof(GLfloat));
+    m_vbo_grid.allocate(_grid.getLineData(), _grid.getLineCount() * sizeof(GLfloat));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
@@ -159,16 +159,16 @@ void GL::initializeGL(void) {
 
     m_normal_buffer.create();
     m_normal_buffer.bind();
-    m_normal_buffer.allocate(tempcube.normalData(), tempcube.normalDataCount()*sizeof(GLfloat));
+    m_normal_buffer.allocate(tempcube.normalData(), tempcube.normalDataCount() * sizeof(GLfloat));
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
     m_normal_buffer.release();
 
-//    m_uvw_buffer.create();
-//    m_uvw_buffer.bind();
-//    glEnableVertexAttribArray(2);
-//    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-//    m_uvw_buffer.release();
+    //    m_uvw_buffer.create();
+    //    m_uvw_buffer.bind();
+    //    glEnableVertexAttribArray(2);
+    //    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    //    m_uvw_buffer.release();
 
     m_vao.release();
 
@@ -213,7 +213,7 @@ void GL::paintGL() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-//    glEnable(GL_CULL_FACE);
+    //    glEnable(GL_CULL_FACE);
     glEnable(GL_POINT_SMOOTH);
     glPointSize(4.0f);
     //    glEnable(GL_LINE_SMOOTH);

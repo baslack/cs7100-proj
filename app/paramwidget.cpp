@@ -12,8 +12,8 @@ ParamWidget::ParamWidget(
     //param index
     this->idx = index;
     // field setup
-    QDoubleValidator* d_valid = new QDoubleValidator;
-    QIntValidator* i_valid = new QIntValidator;
+    QDoubleValidator* d_valid = new QDoubleValidator(this);
+    QIntValidator* i_valid = new QIntValidator(this);
     // label
     this->name = new QLabel(name, this);
     this->name->setToolTip(tooltip);
