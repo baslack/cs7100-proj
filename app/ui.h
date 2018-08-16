@@ -39,6 +39,9 @@ class ui : public QMainWindow {
     void setCurrentAdaptor(int);
     void onAdaptorChanged(void);
     void onSave(void);
+    void onMaxRegionsChanged(void);
+    void onAreaThresholdChanged(void);
+    void onAspectLimitChanged(void);
 
   public slots:
     void onVisualize(void);
@@ -64,6 +67,9 @@ class ui : public QMainWindow {
     // new left hand members
     QWidget* lwrapper = Q_NULLPTR;
     QVector<ParamWidget*> params;
+    int m_adaptive_max_regions = 512;
+    GLfloat m_adaptive_area_threshold = 0.03f;
+    GLfloat m_adaptive_aspect_limit= 2.0f;
 
     // new right hand members
     QWidget* rwrapper = Q_NULLPTR;

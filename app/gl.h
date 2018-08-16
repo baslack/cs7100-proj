@@ -37,6 +37,7 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     void updateNormalBuffer(const GLfloat*,int);
     void updateUVWBuffer(const GLfloat*, int);
     void updatePointBuffer(const GLfloat*, int);
+    void updateLineBuffer(const GLfloat*, int);
     // utilities
     void forceUpdate(void);
 
@@ -55,6 +56,7 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     void setRangeScaleMat(QMatrix4x4);
     void setRangeScaling(GLfloat);
     void setPointsOnly(bool);
+    bool getPointsOnly(void);
 
   private:
     // view data members
@@ -76,19 +78,23 @@ class GL : public QOpenGLWidget, protected QOpenGLFunctions_3_1 {
     QOpenGLBuffer m_vertex_buffer;
     QOpenGLBuffer m_normal_buffer;
     QOpenGLBuffer m_uvw_buffer;
+    QOpenGLBuffer m_line_buffer;
 
     QOpenGLVertexArrayObject m_vao_grid;
     QOpenGLBuffer m_vbo_grid;
     QOpenGLVertexArrayObject m_vao_points;
+    QOpenGLVertexArrayObject m_vao_lines;
 
     // shader data members
     QOpenGLShaderProgram* m_prog;
     QOpenGLShaderProgram* m_prog_points;
     QOpenGLShaderProgram* m_prog_grid;
+    QOpenGLShaderProgram* m_prog_lines;
     // shader memory locations
     int m_mvpMatLoc;
     int m_mvpMatLoc_points;
     int m_mvpMatLoc_grid;
+    int m_mvpMatLoc_lines;
     int m_mvMatLoc;
     // ui event data members
     GLfloat m_centering = 0;

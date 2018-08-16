@@ -172,6 +172,7 @@ void ui::setupLeft() {
     QLabel* center_lb = new QLabel("Centering:", lwrapper);
     QSlider* center = new QSlider(lwrapper);
     center->setObjectName("center_slider");
+    center->setToolTip("Offsets the visualization to the bounds center.");
     center->setOrientation(Qt::Horizontal);
     center->setMinimum(0);
     center->setMaximum(100);
@@ -188,6 +189,7 @@ void ui::setupLeft() {
     QLabel* range_lb = new QLabel("Range Scaling:", lwrapper);
     QSlider* range = new QSlider(lwrapper);
     range->setObjectName("range_slider");
+    range->setToolTip("Scales the range to the size of the smallest axis of the domain.");
     range->setOrientation(Qt::Horizontal);
     range->setMinimum(0);
     range->setMaximum(100);
@@ -210,6 +212,57 @@ void ui::setupLeft() {
         this,
         &ui::onAdaptiveVisualize
     );
+    // adaptive max regions
+    QLabel* max_regions_slider_lb = new QLabel("Max Adaptive Regions:", lwrapper);
+    QSlider* max_regions_slider = new QSlider(lwrapper);
+    max_regions_slider->setObjectName("max_regions_slider");
+    max_regions_slider->setToolTip("Sets the maximum number of regions the domain will be broken into.");
+    max_regions_slider->setOrientation(Qt::Horizontal);
+    max_regions_slider->setMinimum(6);
+    max_regions_slider->setMaximum(12);
+    max_regions_slider->setTickInterval(1);
+    max_regions_slider->setTickPosition(QSlider::TickPosition::TicksBothSides);
+    max_regions_slider->setValue(9);
+    connect(
+        max_regions_slider,
+        &QSlider::valueChanged,
+        this,
+        &ui::onMaxRegionsChanged
+    );
+    // area threshold slider
+    QLabel* area_threshold_slider_lb = new QLabel("Minimum Region Area:", lwrapper);
+    QSlider* area_threshold_slider = new QSlider(lwrapper);
+    area_threshold_slider->setObjectName("area_threshold_slider");
+    area_threshold_slider->setToolTip("Sets the minimum region area for splitting the domain.");
+    area_threshold_slider->setOrientation(Qt::Horizontal);
+    area_threshold_slider->setMinimum(1);
+    area_threshold_slider->setMaximum(10);
+    area_threshold_slider->setTickInterval(1);
+    area_threshold_slider->setTickPosition(QSlider::TickPosition::TicksBothSides);
+    area_threshold_slider->setValue(3);
+    connect(
+        area_threshold_slider,
+        &QSlider::valueChanged,
+        this,
+        &ui::onAreaThresholdChanged
+    );
+    // aspect limit slider
+    QLabel* aspect_limit_slider_lb = new QLabel("Maximum Aspect Ratio:", lwrapper);
+    QSlider* aspect_limit_slider = new QSlider(lwrapper);
+    aspect_limit_slider->setObjectName("aspect_limit_slider");
+    aspect_limit_slider->setToolTip("Sets the maximum aspect ratio allowed in a domain region.");
+    aspect_limit_slider->setOrientation(Qt::Horizontal);
+    aspect_limit_slider->setMinimum(1);
+    aspect_limit_slider->setMaximum(8);
+    aspect_limit_slider->setTickInterval(1);
+    aspect_limit_slider->setTickPosition(QSlider::TickPosition::TicksBothSides);
+    aspect_limit_slider->setValue(2);
+    connect(
+        aspect_limit_slider,
+        &QSlider::valueChanged,
+        this,
+        &ui::onAspectLimitChanged
+    );
     // uniform
     QPushButton* visualizeButton = new QPushButton(lwrapper);
     visualizeButton->setText("Visualize\nUniform");
@@ -224,8 +277,17 @@ void ui::setupLeft() {
     param_layout->addWidget(center);
     param_layout->addWidget(range_lb);
     param_layout->addWidget(range);
+
+    param_layout->addWidget(max_regions_slider_lb);
+    param_layout->addWidget(max_regions_slider);
+    param_layout->addWidget(area_threshold_slider_lb);
+    param_layout->addWidget(area_threshold_slider);
+    param_layout->addWidget(aspect_limit_slider_lb);
+    param_layout->addWidget(aspect_limit_slider);
+
     param_layout->addWidget(adaptiveVisualize);
     param_layout->addWidget(visualizeButton);
+
     lwrapper->setLayout(param_layout);
     lwrapper->setMaximumWidth(LEFT_WIDTH);
 }
@@ -267,6 +329,11 @@ void ui::setCurrentAdaptor(int index) {
 void ui::onAdaptorChanged(void) {
     varying_adaptor_indexes.clear();
     setupLeft();
+    onCenteringChanged();
+    onRangeScalingChanged();
+    onMaxRegionsChanged();
+    onAreaThresholdChanged();
+    onAspectLimitChanged();
     this->show();
 }
 
@@ -295,7 +362,7 @@ void ui::onRangeScalingChanged() {
     }
 }
 
-#define ADAPTIVE_REGIONS 2048
+#define ADAPTIVE_REGIONS 512
 
 void ui::onAdaptiveVisualize() {
     viewport->setPointsOnly(true);
@@ -340,9 +407,28 @@ void ui::onAdaptiveVisualize() {
     double y_max = params[y_index]->getMax();
     //    int y_steps = params[y_index]->getSteps();
 
+
+    log->append("X param: "
+                + params[x_index]->getName()
+                + " ranging from "
+                + QString::number(x_min)
+                + " to "
+                + QString::number(x_max)
+                + ".\n"
+               );
+    log->append("Y param: "
+                + params[y_index]->getName()
+                + " ranging from "
+                + QString::number(y_min)
+                + " to "
+                + QString::number(y_max)
+                + ".\n"
+               );
+
     // Mesh will generated sizes by bounds
     // UI will make the calls
     log->append("Setting up Adaptive Mesh\n");
+
     if (m_geo != Q_NULLPTR) {
         delete m_geo;
     }
@@ -353,7 +439,11 @@ void ui::onAdaptiveVisualize() {
         y_index,
         QVector2D(x_min, y_min),
         QVector2D(x_max, y_max),
-        ADAPTIVE_REGIONS
+        m_adaptive_max_regions,
+        m_adaptive_area_threshold,
+        m_adaptive_aspect_limit
+        ,
+        this
     );
     m_geo = a_mesh;
     connect(
@@ -483,20 +573,40 @@ void ui::onMeshDataReady(void) {
         m_geo->dataPointPositions(),
         m_geo->countPointPositions()
     );
+    viewport->updateLineBuffer(
+        m_geo->dataLinePositions(),
+        m_geo->countLinePositions()
+    );
     viewport->setCenteringMat(m_geo->centeringTransform());
     viewport->setRangeScaleMat(m_geo->rangeScalingTransform());
     viewport->forceUpdate();
 }
 
-void ui::onSave(){
+void ui::onSave() {
     QImage fb = viewport->grabFramebuffer();
     QString filename = QFileDialog::getSaveFileName(
-                this,
-                "Save Image",
-                QDir::homePath() + "/Desktop/",
-                "Images (*.png)",
-                0);
-    if (!filename.isEmpty()){
+                           this,
+                           "Save Image",
+                           QDir::homePath() + "/Desktop/",
+                           "Images (*.png)",
+                           0);
+    if (!filename.isEmpty()) {
         fb.save(filename, "PNG");
     }
-;}
+    ;
+}
+
+void ui::onMaxRegionsChanged() {
+    QSlider* mr = lwrapper->findChild<QSlider*>("max_regions_slider", Qt::FindChildOption::FindChildrenRecursively);
+    m_adaptive_max_regions = 1 << mr->value();
+}
+
+void ui::onAreaThresholdChanged() {
+    QSlider* at = lwrapper->findChild<QSlider*>("area_threshold_slider", Qt::FindChildOption::FindChildrenRecursively);
+    m_adaptive_area_threshold = 0.01f * at->value();
+}
+
+void ui::onAspectLimitChanged() {
+    QSlider* al = lwrapper->findChild<QSlider*>("aspect_limit_slider", Qt::FindChildOption::FindChildrenRecursively);
+    m_adaptive_aspect_limit = GLfloat(al->value());
+}

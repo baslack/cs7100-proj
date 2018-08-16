@@ -17,6 +17,8 @@ class Geometry_Interface {
     virtual int countTrianglesUVWs(void) const = 0;
     virtual const GLfloat* dataPointPositions(void) const = 0;
     virtual int countPointPositions(void) const = 0;
+    virtual const GLfloat* dataLinePositions(void) const = 0;
+    virtual int countLinePositions(void) const = 0;
     virtual QMatrix4x4 centeringTransform(void) = 0;
     virtual QMatrix4x4 rangeScalingTransform(void) = 0;
     virtual QVector3D boundsMin(void)=0;

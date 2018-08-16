@@ -256,6 +256,11 @@ const GLfloat* Mesh::dataPointPositions(void) const {
     return m_pt_pos.constData();
 }
 
+const GLfloat *Mesh::dataLinePositions() const
+{
+    return m_lines.constData();
+}
+
 const GLfloat* Mesh::dataTrianglesPositions(void) const {
     return m_vertex_pos.constData();
 }
@@ -270,6 +275,11 @@ const GLfloat* Mesh::dataTrianglesUVWs(void) const{
 
 int Mesh::countPointPositions(void) const{
     return m_pt_pos.size();
+}
+
+int Mesh::countLinePositions() const
+{
+    return m_lines.size();
 }
 
 int Mesh::countTrianglesPositions(void) const{

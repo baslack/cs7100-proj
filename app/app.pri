@@ -35,9 +35,9 @@ HEADERS += \
 
 DISTFILES += \
     $$PWD/basicvertexshader.glsl \
-    $$PWD/basicfragmentshader.glsl \
     $$PWD/bluefrag.glsl \
     $$PWD/grid_fragshader.glsl \
     $$PWD/grid_vertshader.glsl \
     $$PWD/lambert_vertex.glsl \
-    $$PWD/lambert_fragment.glsl
+    $$PWD/lambert_fragment.glsl \
+    $$PWD/line_fragment_shader.glsl

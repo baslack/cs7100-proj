@@ -35,10 +35,12 @@ class Mesh : public QObject, public Geometry_Interface {
     const GLfloat* dataTrianglesNormals(void) const;
     const GLfloat* dataTrianglesUVWs(void) const;
     const GLfloat* dataPointPositions(void) const;
+    const GLfloat* dataLinePositions(void) const;
     int countTrianglesPositions(void) const;
     int countTrianglesNormals(void) const;
     int countTrianglesUVWs(void) const;
     int countPointPositions(void) const;
+    int countLinePositions(void) const;
   private:
     // methods
     void pointbuffer(void);
@@ -56,6 +58,7 @@ class Mesh : public QObject, public Geometry_Interface {
     QVector<GLfloat> m_vertex_pos;
     QVector<GLfloat> m_vertex_n;
     QVector<GLfloat> m_vertex_uvw;
+    QVector<GLfloat> m_lines;
   signals:
     void MeshComplete(void);
     void MeshDataReady(void);

@@ -57,7 +57,37 @@ double Region::getArea(void) const {
     return size.x() * size.y();
 }
 
-#define THRESHOLD 0.001f
+QVector<GLfloat> Region::getLines() const {
+    GLfloat fudge = 0.01f;
+    QVector<GLfloat> line_pts;
+    line_pts.push_back(m_min.x());
+    line_pts.push_back(m_min.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_max.x());
+    line_pts.push_back(m_min.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_max.x());
+    line_pts.push_back(m_min.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_max.x());
+    line_pts.push_back(m_max.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_max.x());
+    line_pts.push_back(m_max.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_min.x());
+    line_pts.push_back(m_max.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_min.x());
+    line_pts.push_back(m_max.y());
+    line_pts.push_back(fudge);
+    line_pts.push_back(m_min.x());
+    line_pts.push_back(m_min.y());
+    line_pts.push_back(fudge);
+    return line_pts;
+}
+
+//#define THRESHOLD 0.03f
 
 AdaptiveMesh::AdaptiveMesh(
     AdaptorInterface* adaptor,
@@ -67,6 +97,8 @@ AdaptiveMesh::AdaptiveMesh(
     QVector2D min_bound,
     QVector2D max_bound,
     int max_regions,
+    GLfloat area_threshold,
+    GLfloat max_aspect,
     QObject* parent)
     :
     QObject(parent),
@@ -74,7 +106,9 @@ AdaptiveMesh::AdaptiveMesh(
     m_orig_x(orig_x),
     m_x_index(x_index),
     m_y_index(y_index),
-    m_max_regions(max_regions) {
+    m_max_regions(max_regions),
+    m_area_threshold(area_threshold),
+    m_max_aspect(max_aspect) {
 
     // setup the first region
     Region start(min_bound, max_bound);
@@ -85,34 +119,38 @@ AdaptiveMesh::AdaptiveMesh(
     m_regions_heap.push_back(start);
     std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
     int count = 0;
-    while ((int(m_regions_heap.size()) < max_regions) && (int(m_regions_heap.size()) > 0)) {
+    while ((int(m_regions_heap.size() + m_small_regions.size()) < max_regions) && (int(m_regions_heap.size()) > 0)) {
         // pop top heap
         std::pop_heap(m_regions_heap.begin(), m_regions_heap.end());
         Region popped = m_regions_heap.back();
         m_regions_heap.pop_back();
+        if (popped.getArea() < m_area_threshold) {
+            m_small_regions.push_back(popped);
+            continue;
+        }
         // split
-//        qDebug() << "popped: " << count << "/" << popped.getMinpoint() << popped.getMaxpoint() << popped.getMaxDerivative() << popped.getArea();
+        //        qDebug() << "popped: " << count << "/" << popped.getMinpoint() << popped.getMaxpoint() << popped.getMaxDerivative() << popped.getArea();
         Region new_region = performSplit(popped);
         // perform derivative
         performDerivative(popped);
         performDerivative(new_region);
         // add both back to heap if large enough
-        if (new_region.getArea() < THRESHOLD) {
-//            new_region.setMaxDerivative(false, -1000);
-            m_small_regions.push_back(new_region);
-        }else{
-            m_regions_heap.push_back(new_region);
-            std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
-        }
-        if (popped.getArea() < THRESHOLD) {
-//            popped.setMaxDerivative(false, -1000);
-            m_small_regions.push_back(popped);
-        }else{
-            m_regions_heap.push_back(popped);
-            std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
-        }
+        //        if (new_region.getArea() < THRESHOLD) {
+        //            //            new_region.setMaxDerivative(false, -1000);
+        //            m_small_regions.push_back(new_region);
+        //        } else {
+        m_regions_heap.push_back(new_region);
+        std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
+        //        }
+        //        if (popped.getArea() < THRESHOLD) {
+        //            //            popped.setMaxDerivative(false, -1000);
+        //            m_small_regions.push_back(popped);
+        //        } else {
+        m_regions_heap.push_back(popped);
+        std::push_heap(m_regions_heap.begin(), m_regions_heap.end());
+        //        }
         count++;
-        if (count > (1<<16)){
+        if (count > (1 << 16)) {
             qDebug() << "Exceeded Count!";
             break;
         }
@@ -123,24 +161,30 @@ void AdaptiveMesh::dumpPoints(void) {
     // dump the regions points and results to the point array
     for (auto this_region : m_regions_heap) {
         pushRegionToPoints(this_region);
+        for (auto this_float : this_region.getLines()) {
+            m_lines.push_back(this_float);
+        }
     }
-    for (auto this_region : m_small_regions){
+    for (auto this_region : m_small_regions) {
         pushRegionToPoints(this_region);
+        for (auto this_float : this_region.getLines()) {
+            m_lines.push_back(this_float);
+        }
     }
     emit pointDataReady();
 }
 
 void AdaptiveMesh::performDerivative(Region& this_region) {
     // setup the offsets for the stencil
-    QVector2D max = this_region.getMaxpoint();
-    QVector2D min = this_region.getMinpoint();
-    double h_x = max.x() - min.x();
-    h_x /= H_RATIO;
-    double h_y = max.y() - min.y();
-    h_y /= H_RATIO;
-
-    h_x = 1.0f;
-    h_y = 1.0f;
+//    QVector2D max = this_region.getMaxpoint();
+//    QVector2D min = this_region.getMinpoint();
+//    double h_x = max.x() - min.x();
+//    h_x /= H_RATIO;
+//    double h_y = max.y() - min.y();
+//    h_y /= H_RATIO;
+    double h_x, h_y;
+    h_x = 0.1f;
+    h_y = 0.1f;
     QVector<double> scratch_x(m_orig_x);
     QVector2D mid = this_region.getMidpoint();
     scratch_x[m_x_index] = mid.x();
@@ -157,11 +201,28 @@ void AdaptiveMesh::performDerivative(Region& this_region) {
 }
 
 Region AdaptiveMesh::performSplit(Region& old_region) {
+    GLfloat aspect = 1.0f;
     QVector2D old_min = old_region.getMinpoint();
     QVector2D old_max = old_region.getMaxpoint();
     QVector2D old_mid = old_region.getMidpoint();
+    aspect = (old_max.x() - old_min.x()) / (old_max.y() - old_min.y());
     QVector2D new_min, new_max;
-    if (old_region.getMaxOnX()) {
+    if (aspect > m_max_aspect) {
+        // wide aspect, split on x
+        new_min.setX(old_mid.x());
+        new_min.setY(old_min.y());
+        new_max.setX(old_max.x());
+        new_max.setY(old_max.y());
+        old_max.setX(old_mid.x());
+    } else if (aspect < (1/m_max_aspect)) {
+        // tall aspect, split on y
+        new_min.setX(old_min.x());
+        new_min.setY(old_mid.y());
+        new_max.setX(old_max.x());
+        new_max.setY(old_max.y());
+        old_max.setY(old_mid.y());
+    } else if (old_region.getMaxOnX()) {
+        // regulize aspect, split on derivative
         new_min.setX(old_mid.x());
         new_min.setY(old_min.y());
         new_max.setX(old_max.x());
@@ -180,13 +241,13 @@ Region AdaptiveMesh::performSplit(Region& old_region) {
 }
 
 void AdaptiveMesh::pushRegionToPoints(const Region& this_region) {
-//    QVector2D min = this_region.getMinpoint();
-//    QVector2D max = this_region.getMaxpoint();
+    //    QVector2D min = this_region.getMinpoint();
+    //    QVector2D max = this_region.getMaxpoint();
     QVector<QVector2D>pts;
-//    pts.push_back(min);
-//    pts.push_back(QVector2D(max.x(), min.y()));
-//    pts.push_back(max);
-//    pts.push_back(QVector2D(min.x(), max.y()));
+    //    pts.push_back(min);
+    //    pts.push_back(QVector2D(max.x(), min.y()));
+    //    pts.push_back(max);
+    //    pts.push_back(QVector2D(min.x(), max.y()));
     pts.push_back(this_region.getMidpoint());
     double z = 0;
     QVector<double>scratch_x(m_orig_x);
@@ -241,6 +302,14 @@ const GLfloat* AdaptiveMesh::dataPointPositions(void) const {
 
 int AdaptiveMesh::countPointPositions(void) const {
     return m_pts.size();
+}
+
+const GLfloat* AdaptiveMesh::dataLinePositions() const {
+    return m_lines.constData();
+}
+
+int AdaptiveMesh::countLinePositions() const {
+    return m_lines.size();
 }
 
 QMatrix4x4 AdaptiveMesh::centeringTransform(void)  {

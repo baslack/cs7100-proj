@@ -6,7 +6,7 @@
 void setupOpenGL(int, int, int);
 
 int main(int argc, char** argv) {
-    setupOpenGL(3, 1, 4);
+    setupOpenGL(3, 1, 8);
     QApplication app(argc, argv);
     ui ui;
     ui.setup();

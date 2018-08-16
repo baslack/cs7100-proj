@@ -13,6 +13,7 @@
 #define F_SHAD_BLUE_PATH "bluefrag.glsl"
 #define V_SHAD_GRID_PATH "grid_vertshader.glsl"
 #define F_SHAD_GRID_PATH "grid_fragshader.glsl"
+#define F_SHAD_LINE_PATH "line_fragment_shader.glsl"
 #define NEAR_CLIP 0.1f
 #define FAR_CLIP 100.0f
 
@@ -92,6 +93,7 @@ void GL::initializeGL(void) {
     m_prog->release();
 
 
+    // point shader
     QFile f_blue_point_shader_file(F_SHAD_BLUE_PATH);
     f_blue_point_shader_file.open(QIODevice::ReadOnly);
     QString f_blue_point_shader = f_blue_point_shader_file.readAll();
@@ -105,6 +107,20 @@ void GL::initializeGL(void) {
     m_prog_points->bind();
     m_mvpMatLoc_points = m_prog_points->uniformLocation("mvpMat");
     m_prog_points->release();
+
+    // line shader
+    QFile f_line_shader_file(F_SHAD_LINE_PATH);
+    f_line_shader_file.open(QIODevice::ReadOnly);
+    QString f_line_shader_source = f_line_shader_file.readAll();
+    f_line_shader_file.close();
+    m_prog_lines = new QOpenGLShaderProgram;
+    m_prog_lines->addShaderFromSourceCode(QOpenGLShader::Vertex, v_shad_source);
+    m_prog_lines->addShaderFromSourceCode(QOpenGLShader::Fragment, f_line_shader_source);
+    m_prog_lines->bindAttributeLocation("vertex", 0);
+    m_prog_lines->link();
+    m_prog_lines->bind();
+    m_mvpMatLoc_lines = m_prog_lines->uniformLocation("mvpMat");
+    m_prog_lines->release();
 
     // prep the base grid
     QFile v_grid_shad_source_file(V_SHAD_GRID_PATH);
@@ -185,6 +201,16 @@ void GL::initializeGL(void) {
     m_vao_points.release();
 
 
+    //setup line drawing
+    m_vao_lines.create();
+    m_vao_lines.bind();
+    m_line_buffer.create();
+    m_line_buffer.bind();
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    m_line_buffer.release();
+    m_vao_lines.release();
+
     //    m_vbo.allocate(tempcube.constData(), tempcube.count() * sizeof(GLfloat));
 
     //    m_vbo.release();
@@ -214,10 +240,11 @@ void GL::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     //    glEnable(GL_CULL_FACE);
-    glEnable(GL_POINT_SMOOTH);
+//    glEnable(GL_POINT_SMOOTH);
     glPointSize(4.0f);
-    //    glEnable(GL_LINE_SMOOTH);
-    //    glLineWidth(2.0f);
+//    glEnable(GL_LINE_SMOOTH);
+//    glEnable(GL)
+    glLineWidth(2.0f);
 
     //    m_modelMat.setToIdentity();
 
@@ -281,6 +308,18 @@ void GL::paintGL() {
     m_pt_buffer.release();
     m_prog_points->release();
     m_vao_points.release();
+
+    //draw lines
+    m_vao_lines.bind();
+    m_prog_lines->bind();
+    m_prog_lines->setUniformValue(m_mvpMatLoc_lines, mvpMat);
+    m_line_buffer.bind();
+    if (m_line_buffer.size() != 0) {
+        glDrawArrays(GL_LINES, 0, m_line_buffer.size() / int(sizeof(GLfloat)) / 3);
+    }
+    m_line_buffer.release();
+    m_prog_lines->release();
+    m_vao_lines.release();
 }
 
 void GL::resizeGL(int w, int h) {
@@ -484,6 +523,12 @@ void GL::updatePointBuffer(const GLfloat* data, int count) {
     m_pt_buffer.release();
 }
 
+void GL::updateLineBuffer(const GLfloat* data, int count) {
+    makeCurrent();
+    m_line_buffer.bind();
+    m_line_buffer.allocate(data, count * sizeof(GLfloat));
+}
+
 void GL::forceUpdate() {
     makeCurrent();
     update();
@@ -526,6 +571,10 @@ QMatrix4x4 GL::RangeScaleMat(void) {
 
 void GL::setPointsOnly(bool state) {
     m_pts_only = state;
+}
+
+bool GL::getPointsOnly() {
+    return m_pts_only;
 }
 
 // getters

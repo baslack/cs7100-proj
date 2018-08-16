@@ -23,6 +23,7 @@ class Region {
     bool operator< (const Region&) const;
     static bool Compare(const Region&, const Region&);
     double getArea(void) const;
+    QVector<GLfloat> getLines(void) const;
   private:
     QVector2D m_min;
     QVector2D m_max;
@@ -41,6 +42,8 @@ class AdaptiveMesh : public QObject, public Geometry_Interface {
         QVector2D,
         QVector2D,
         int,
+        GLfloat,
+        GLfloat,
         QObject* parent = 0
     );
     void clear(void);
@@ -52,6 +55,8 @@ class AdaptiveMesh : public QObject, public Geometry_Interface {
     int countTrianglesUVWs(void) const;
     const GLfloat* dataPointPositions(void) const;
     int countPointPositions(void) const;
+    const GLfloat* dataLinePositions(void) const;
+    int countLinePositions(void) const;
     QMatrix4x4 centeringTransform(void);
     QMatrix4x4 rangeScalingTransform(void);
     QVector3D boundsMin(void);
@@ -68,12 +73,15 @@ class AdaptiveMesh : public QObject, public Geometry_Interface {
     QVector<GLfloat> m_verts;
     QVector<GLfloat> m_normals;
     QVector<GLfloat> m_uvs;
+    QVector<GLfloat> m_lines;
 //    void (*m_fn)(const QVector<double>&, double&);
     AdaptorInterface* m_adpt;
     const QVector<double>& m_orig_x;
     int m_x_index;
     int m_y_index;
-    int m_max_regions;
+    int m_max_regions = 512;
+    GLfloat m_area_threshold = 0.03f;
+    GLfloat m_max_aspect = 2;
     QVector3D m_min = {0,0,0};
     QVector3D m_max = {0,0,0};
   signals:
